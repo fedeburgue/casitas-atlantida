@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Casitas Atlántida — Alquiler temporal frente al mar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#14181c;
+    --paper:#ffffff;
+    --mist:#f4f2ec;
+    --ocean:#1c4e5c;
+    --ocean-light:#2f7188;
+    --sand:#cbb491;
+    --line:#e3dfd5;
+    --danger:#a8402f;
+    --ok:#3f7a5a;
+    --radius:2px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:'Inter', -apple-system, sans-serif;
+    color:var(--ink);
+    background:var(--paper);
+    font-weight:300;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{
+    font-family:'Space Grotesk', 'Inter', sans-serif;
+    font-weight:400;
+    letter-spacing:-0.01em;
+  }
+  a{color:inherit; text-decoration:none;}
+  img{display:block; max-width:100%;}
+  button{font-family:inherit; cursor:pointer; border:none; background:none;}
+  .container{max-width:1240px; margin:0 auto; padding:0 32px;}
+  :focus-visible{outline:2px solid var(--ocean); outline-offset:3px;}
+
+  /* NAV */
+  #nav{
+    position:fixed; top:0; left:0; right:0; z-index:200;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:22px 32px;
+    transition:background .35s ease, padding .35s ease, box-shadow .35s ease;
+    background:transparent;
+  }
+  #nav.scrolled{
+    background:rgba(255,255,255,0.92);
+    backdrop-filter:blur(10px);
+    padding:14px 32px;
+    box-shadow:0 1px 0 var(--line);
+  }
+  #nav .brand{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:15px; letter-spacing:0.14em; text-transform:uppercase; font-weight:500;
+    color:var(--paper);
+    transition:color .35s ease;
+  }
+  #nav.scrolled .brand{ color:var(--ink); }
+  #nav .links{display:flex; gap:34px; align-items:center;}
+  #nav .links a{
+    font-size:13px; letter-spacing:0.04em; color:var(--paper); opacity:.9;
+    transition:opacity .2s, color .35s ease;
+  }
+  #nav.scrolled .links a{ color:var(--ink); }
+  #nav .links a:hover{opacity:.6;}
+  #nav .cta-nav{
+    font-size:13px; letter-spacing:0.03em; padding:9px 18px; border:1px solid var(--paper);
+    color:var(--paper); border-radius:100px; transition:all .35s ease;
+  }
+  #nav.scrolled .cta-nav{ color:var(--ink); border-color:var(--ink); }
+  #nav .cta-nav:hover{ background:var(--paper); color:var(--ink); }
+  #nav.scrolled .cta-nav:hover{ background:var(--ink); color:var(--paper); }
+
+  /* HERO */
+  .hero{
+    position:relative; height:100vh; min-height:640px;
+    display:flex; align-items:flex-end;
+    background:#0d1416 url('https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&w=2000&q=80') center/cover no-repeat;
+  }
+  .hero::before{
+    content:''; position:absolute; inset:0;
+    background:linear-gradient(180deg, rgba(10,14,16,.15) 0%, rgba(10,14,16,.05) 40%, rgba(10,14,16,.72) 100%);
+  }
+  .hero-inner{position:relative; z-index:2; width:100%; padding:0 32px 88px; color:#fff;}
+  .hero-eyebrow{
+    font-size:12.5px; letter-spacing:.18em; text-transform:uppercase; opacity:.85; margin-bottom:18px; font-weight:400;
+  }
+  .hero h1{
+    font-size:clamp(38px, 6.4vw, 84px); font-weight:300; line-height:1.02; max-width:850px;
+  }
+  .hero p{
+    margin-top:22px; font-size:17px; max-width:480px; font-weight:300; opacity:.92; line-height:1.55;
+  }
+  .hero-actions{display:flex; gap:14px; margin-top:38px; flex-wrap:wrap;}
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    padding:15px 30px; border-radius:100px; font-size:14.5px; letter-spacing:.02em;
+    transition:transform .18s ease, background .2s ease, color .2s ease, border-color .2s ease;
+  }
+  .btn:active{transform:scale(.97);}
+  .btn-primary{background:#fff; color:var(--ink);}
+  .btn-primary:hover{background:var(--sand);}
+  .btn-outline{border:1px solid rgba(255,255,255,.7); color:#fff;}
+  .btn-outline:hover{background:rgba(255,255,255,.12);}
+  .btn-dark{background:var(--ink); color:#fff;}
+  .btn-dark:hover{background:var(--ocean);}
+  .btn-ghost{border:1px solid var(--line); color:var(--ink);}
+  .btn-ghost:hover{border-color:var(--ink);}
+  .btn-whatsapp{background:var(--ocean); color:#fff;}
+  .btn-whatsapp:hover{background:var(--ocean-light);}
+  .btn[disabled]{opacity:.5; cursor:not-allowed;}
+
+  .scroll-cue{
+    position:absolute; bottom:28px; left:50%; transform:translateX(-50%); z-index:2;
+    color:#fff; opacity:.75; font-size:11px; letter-spacing:.16em; text-transform:uppercase;
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+  }
+  .scroll-cue .line{width:1px; height:26px; background:#fff; animation:scrollpulse 1.8s ease-in-out infinite;}
+  @keyframes scrollpulse{0%{opacity:.2; transform:scaleY(.4); transform-origin:top;} 50%{opacity:1; transform:scaleY(1); transform-origin:top;} 100%{opacity:.2; transform:scaleY(.4); transform-origin:top;}}
+
+  .wave-divider{display:block; width:100%; height:64px; background:var(--mist);}
+  .wave-divider svg{display:block; width:100%; height:64px;}
+
+  .section{padding:104px 0;}
+  .section-mist{background:var(--mist);}
+  .section-head{max-width:640px; margin-bottom:56px;}
+  .section-eyebrow{font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--ocean); font-weight:500; margin-bottom:14px;}
+  .section-head h2{font-size:clamp(28px,3.4vw,42px); font-weight:400; line-height:1.1;}
+  .section-head p{margin-top:16px; font-size:16px; color:#555; line-height:1.6; font-weight:300;}
+
+  .lineup-grid{display:grid; grid-template-columns:repeat(2, 1fr); gap:28px;}
+  .casa-card{
+    background:var(--paper); border:1px solid var(--line); border-radius:var(--radius);
+    overflow:hidden; display:flex; flex-direction:column;
+    transition:box-shadow .3s ease, transform .3s ease;
+  }
+  .casa-card:hover{box-shadow:0 18px 40px rgba(20,24,28,.09); transform:translateY(-3px);}
+  .casa-photo{position:relative; aspect-ratio:4/3; overflow:hidden; background:var(--line);}
+  .casa-photo img{width:100%; height:100%; object-fit:cover; transition:transform .6s ease;}
+  .casa-card:hover .casa-photo img{transform:scale(1.045);}
+  .casa-tag{
+    position:absolute; top:16px; left:16px; background:rgba(255,255,255,.92); backdrop-filter:blur(4px);
+    padding:6px 12px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; border-radius:100px; color:var(--ink);
+  }
+  .casa-body{padding:26px 26px 24px; display:flex; flex-direction:column; gap:14px; flex:1;}
+  .casa-body h3{font-size:23px; font-weight:400;}
+  .casa-meta{display:flex; gap:16px; font-size:13px; color:#666; flex-wrap:wrap;}
+  .casa-meta span{display:flex; align-items:center; gap:6px;}
+  .casa-desc{font-size:14.5px; color:#555; line-height:1.55; font-weight:300;}
+  .casa-price{font-size:14px; color:var(--ink); font-weight:500; margin-top:2px;}
+  .casa-price small{font-weight:300; color:#777;}
+  .casa-actions{display:flex; gap:10px; margin-top:auto; padding-top:8px;}
+  .casa-actions .btn{padding:12px 18px; font-size:13.5px; flex:1;}
+
+  .detail-panel{display:none; padding:104px 0; border-top:1px solid var(--line);}
+  .detail-panel.open{display:block;}
+  .detail-top{display:flex; justify-content:space-between; align-items:flex-start; gap:24px; margin-bottom:40px; flex-wrap:wrap;}
+  .detail-top h2{font-size:clamp(26px,3.2vw,38px); font-weight:400;}
+  .detail-top .close-detail{font-size:13px; color:#777; border:1px solid var(--line); padding:9px 16px; border-radius:100px;}
+  .detail-top .close-detail:hover{border-color:var(--ink); color:var(--ink);}
+  .detail-grid{display:grid; grid-template-columns:1.3fr 1fr; gap:56px; align-items:start;}
+
+  .carousel{position:relative; border-radius:var(--radius); overflow:hidden; background:var(--mist);}
+  .carousel-track{aspect-ratio:16/10; overflow:hidden; position:relative;}
+  .carousel-track img{width:100%; height:100%; object-fit:cover; position:absolute; inset:0; opacity:0; transition:opacity .45s ease;}
+  .carousel-track img.active{opacity:1;}
+  .carousel-nav{position:absolute; top:50%; transform:translateY(-50%); width:100%; display:flex; justify-content:space-between; padding:0 14px; pointer-events:none;}
+  .carousel-nav button{
+    pointer-events:auto; width:38px; height:38px; border-radius:50%; background:rgba(255,255,255,.85);
+    display:flex; align-items:center; justify-content:center; font-size:16px; color:var(--ink);
+    transition:background .2s;
+  }
+  .carousel-nav button:hover{background:#fff;}
+  .carousel-dots{display:flex; gap:7px; justify-content:center; padding:14px 0;}
+  .carousel-dots span{width:6px; height:6px; border-radius:50%; background:var(--line); transition:background .2s, transform .2s;}
+  .carousel-dots span.active{background:var(--ocean); transform:scale(1.3);}
+
+  .detail-info p.casa-long-desc{font-size:15.5px; line-height:1.7; color:#444; font-weight:300; margin-bottom:22px;}
+  .detail-info .casa-meta{margin-bottom:24px; font-size:14px;}
+  .detail-info .price-row{
+    display:flex; justify-content:space-between; align-items:center; padding:18px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); margin-bottom:24px;
+  }
+  .price-row .amount{font-size:22px; font-weight:400;}
+  .price-row .amount small{font-size:13px; color:#777; font-weight:300;}
+  .detail-info .btn-whatsapp{width:100%; padding:16px; font-size:15px;}
+
+  .calendar-block{margin-top:40px;}
+  .calendar-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;}
+  .calendar-head h4{font-size:16px; font-weight:500; text-transform:capitalize;}
+  .cal-nav-btns{display:flex; gap:8px;}
+  .cal-nav-btns button{
+    width:30px; height:30px; border:1px solid var(--line); border-radius:50%; font-size:14px;
+    display:flex; align-items:center; justify-content:center; transition:border-color .2s;
+  }
+  .cal-nav-btns button:hover{border-color:var(--ink);}
+  .cal-legend{display:flex; gap:18px; font-size:12.5px; color:#666; margin-bottom:14px;}
+  .cal-legend span{display:flex; align-items:center; gap:6px;}
+  .dot{width:9px; height:9px; border-radius:2px; display:inline-block;}
+  .dot.ok{background:var(--mist); border:1px solid var(--line);}
+  .dot.busy{background:var(--danger);}
+  .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:4px;}
+  .cal-grid .dow{font-size:11px; text-align:center; color:#999; padding-bottom:6px; text-transform:uppercase; letter-spacing:.04em;}
+  .cal-day{
+    aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:13px;
+    border-radius:3px; background:var(--mist); color:var(--ink); position:relative;
+  }
+  .cal-day.blank{background:transparent;}
+  .cal-day.past{color:#bbb; background:transparent;}
+  .cal-day.busy{background:var(--danger); color:#fff; text-decoration:line-through; text-decoration-thickness:1.5px;}
+  .cal-day.editable{cursor:pointer;}
+  .cal-day.editable:hover{outline:2px solid var(--ocean); outline-offset:1px;}
+
+  .pay-grid{display:grid; grid-template-columns:repeat(3, 1fr); gap:24px;}
+  .pay-card{border:1px solid var(--line); border-radius:var(--radius); padding:30px 26px; background:var(--paper);}
+  .pay-card .pay-icon{width:38px; height:38px; border-radius:50%; background:var(--ocean); color:#fff; display:flex; align-items:center; justify-content:center; font-size:16px; margin-bottom:18px;}
+  .pay-card h3{font-size:17px; font-weight:500; margin-bottom:10px;}
+  .pay-card p{font-size:14px; color:#666; line-height:1.55; font-weight:300;}
+
+  footer{background:var(--ink); color:#fff; padding:64px 0 32px;}
+  .footer-top{display:flex; justify-content:space-between; gap:40px; flex-wrap:wrap; margin-bottom:48px;}
+  .footer-brand{font-family:'Space Grotesk'; font-size:18px; letter-spacing:.04em; margin-bottom:14px;}
+  .footer-top p{font-size:14px; color:#aab0b3; max-width:320px; line-height:1.6; font-weight:300;}
+  .footer-cols{display:flex; gap:64px; flex-wrap:wrap;}
+  .footer-col h5{font-size:12px; text-transform:uppercase; letter-spacing:.1em; color:#8b9296; margin-bottom:16px; font-weight:500;}
+  .footer-col a, .footer-col p{display:block; font-size:14px; color:#d7dadb; margin-bottom:10px; font-weight:300;}
+  .footer-col a:hover{color:#fff;}
+  .footer-bottom{border-top:1px solid #2a3236; padding-top:24px; font-size:12.5px; color:#7a8085; display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;}
+
+  /* ADMIN */
+  #adminFab{
+    position:fixed; bottom:26px; right:26px; z-index:300;
+    width:48px; height:48px; border-radius:50%; background:var(--ink); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:19px; box-shadow:0 8px 24px rgba(0,0,0,.25);
+    transition:transform .2s;
+  }
+  #adminFab:hover{transform:scale(1.06);}
+  #adminOverlay{
+    position:fixed; inset:0; background:rgba(15,18,20,.55); backdrop-filter:blur(2px); z-index:400; display:none;
+    align-items:stretch; justify-content:flex-end;
+  }
+  #adminOverlay.open{display:flex;}
+  #adminDrawer{
+    width:min(480px, 100%); background:#fff; height:100%; overflow-y:auto; padding:34px 30px 60px; position:relative;
+    box-shadow:-10px 0 30px rgba(0,0,0,.2);
+  }
+  #adminDrawer h2{font-size:20px; margin-bottom:6px;}
+  #adminDrawer .sub{font-size:13px; color:#777; margin-bottom:26px; line-height:1.5;}
+  .admin-close{position:absolute; top:24px; right:24px;}
+  .field{margin-bottom:18px;}
+  .field label{display:block; font-size:12.5px; font-weight:500; margin-bottom:6px; color:#444;}
+  .field input[type=text], .field input[type=number], .field input[type=password], .field textarea, .field select{
+    width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:3px; font-size:13.5px; font-family:inherit; background:#fff;
+  }
+  .field input[type=file]{font-size:12.5px; width:100%;}
+  .field textarea{resize:vertical; min-height:70px;}
+  .field .hint{font-size:11.5px; color:#999; margin-top:5px; line-height:1.4;}
+  .admin-section{border-top:1px solid var(--line); padding-top:22px; margin-top:22px;}
+  .admin-section h3{font-size:14.5px; margin-bottom:16px; font-weight:600;}
+  .admin-tabs{display:flex; gap:6px; margin-bottom:22px; flex-wrap:wrap;}
+  .admin-tabs button{
+    padding:8px 14px; font-size:12.5px; border:1px solid var(--line); border-radius:100px; color:#555;
+  }
+  .admin-tabs button.active{background:var(--ink); color:#fff; border-color:var(--ink);}
+  .admin-save-row{display:flex; gap:10px; margin-top:26px;}
+  .admin-save-row .btn{flex:1; padding:12px; font-size:13.5px;}
+  .pay-edit-row{border:1px solid var(--line); padding:14px; border-radius:4px; margin-bottom:12px; position:relative;}
+  .pay-edit-row .remove-pay{position:absolute; top:10px; right:10px; font-size:12px; color:var(--danger);}
+  .login-box{max-width:340px; margin:15vh auto; text-align:center; padding:0 20px;}
+  .login-box input{width:100%; padding:12px 14px; border:1px solid var(--line); border-radius:3px; font-size:14px; margin:18px 0;}
+  .thumb-row{display:flex; gap:8px; flex-wrap:wrap; margin:8px 0;}
+  .thumb-row img{width:56px; height:56px; object-fit:cover; border-radius:4px; border:1px solid var(--line);}
+  .toast{
+    position:fixed; bottom:26px; left:50%; transform:translateX(-50%) translateY(20px); z-index:500;
+    background:var(--ink); color:#fff; padding:13px 22px; border-radius:100px; font-size:13.5px; opacity:0;
+    transition:opacity .25s, transform .25s; pointer-events:none;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+  .toast.error{background:var(--danger);}
+
+  @media (max-width: 860px){
+    #nav .links{display:none;}
+    .lineup-grid{grid-template-columns:1fr;}
+    .detail-grid{grid-template-columns:1fr; gap:32px;}
+    .pay-grid{grid-template-columns:1fr;}
+    .footer-top{flex-direction:column;}
+    .section{padding:72px 0;}
+  }
+</style>
+</head>
+<body>
+
+<nav id="nav">
+  <a href="#top" class="brand">Casitas Atlántida</a>
+  <div class="links">
+    <a href="#casitas">Casitas</a>
+    <a href="#pagos">Medios de pago</a>
+    <a href="#contacto">Contacto</a>
+  </div>
+  <a href="#" id="navCta" class="cta-nav">Reservar</a>
+</nav>
+
+<header class="hero" id="top">
+  <div class="hero-inner">
+    <div class="hero-eyebrow">Atlántida, Canelones — frente al mar</div>
+    <h1>Cuatro casitas.<br>Un mismo horizonte.</h1>
+    <p>Alquiler temporal en Atlántida. Elegí la casita que mejor se adapta a tu grupo, revisá disponibilidad y reservá directo por WhatsApp.</p>
+    <div class="hero-actions">
+      <a href="#casitas" class="btn btn-primary">Ver las casitas</a>
+      <a href="#" id="heroWhatsapp" class="btn btn-outline">Consultar por WhatsApp</a>
+    </div>
+  </div>
+  <div class="scroll-cue"><span>Scroll</span><span class="line"></span></div>
+</header>
+
+<div class="wave-divider">
+  <svg viewBox="0 0 1200 64" preserveAspectRatio="none"><path d="M0,32 C150,60 350,4 600,32 C850,60 1050,4 1200,32 L1200,64 L0,64 Z" fill="#ffffff"></path></svg>
+</div>
+
+<section class="section section-mist" id="casitas">
+  <div class="container">
+    <div class="section-head">
+      <div class="section-eyebrow">La línea</div>
+      <h2>Elegí tu casita</h2>
+      <p>Cada casita tiene su propia personalidad, capacidad y vista. Tocá "Ver casita" para conocer fotos, precio y disponibilidad real.</p>
+    </div>
+    <div class="lineup-grid" id="lineupGrid"></div>
+  </div>
+</section>
+
+<section class="detail-panel" id="detailPanel">
+  <div class="container">
+    <div class="detail-top">
+      <h2 id="detailTitle">Casa</h2>
+      <button class="close-detail" id="closeDetail">Cerrar ✕</button>
+    </div>
+    <div class="detail-grid">
+      <div>
+        <div class="carousel" id="carousel">
+          <div class="carousel-track" id="carouselTrack"></div>
+          <div class="carousel-nav">
+            <button id="carPrev" aria-label="Foto anterior">‹</button>
+            <button id="carNext" aria-label="Foto siguiente">›</button>
+          </div>
+        </div>
+        <div class="carousel-dots" id="carouselDots"></div>
+
+        <div class="calendar-block">
+          <div class="calendar-head">
+            <h4 id="calMonthLabel">Mes</h4>
+            <div class="cal-nav-btns">
+              <button id="calPrev" aria-label="Mes anterior">‹</button>
+              <button id="calNext" aria-label="Mes siguiente">›</button>
+            </div>
+          </div>
+          <div class="cal-legend">
+            <span><i class="dot ok"></i> Disponible</span>
+            <span><i class="dot busy"></i> Reservado</span>
+          </div>
+          <div class="cal-grid" id="calGrid"></div>
+        </div>
+      </div>
+
+      <div class="detail-info">
+        <p class="casa-long-desc" id="detailDesc"></p>
+        <div class="casa-meta" id="detailMeta"></div>
+        <div class="price-row">
+          <div class="amount" id="detailPrice"></div>
+        </div>
+        <a href="#" id="detailWhatsapp" class="btn btn-whatsapp">Reservar por WhatsApp</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="pagos">
+  <div class="container">
+    <div class="section-head">
+      <div class="section-eyebrow">Cómo pagar</div>
+      <h2>Medios de pago</h2>
+      <p>Coordinamos el medio de pago directamente por WhatsApp al confirmar tu reserva.</p>
+    </div>
+    <div class="pay-grid" id="payGrid"></div>
+  </div>
+</section>
+
+<footer id="contacto">
+  <div class="container">
+    <div class="footer-top">
+      <div>
+        <div class="footer-brand">Casitas Atlántida</div>
+        <p id="footerTagline">Alquiler temporal frente al mar en Atlántida, Canelones.</p>
+      </div>
+      <div class="footer-cols">
+        <div class="footer-col">
+          <h5>Contacto</h5>
+          <a href="#" id="footerWhatsapp">WhatsApp</a>
+          <p id="footerLocation">Atlántida, Canelones, Uruguay</p>
+        </div>
+        <div class="footer-col">
+          <h5>Sitio</h5>
+          <a href="#casitas">Casitas</a>
+          <a href="#pagos">Medios de pago</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© <span id="year"></span> Casitas Atlántida</span>
+      <span>Hecho para alquilar directo, sin intermediarios.</span>
+    </div>
+  </div>
+</footer>
+
+<button id="adminFab" title="Panel del propietario">⚙</button>
+
+<div id="adminOverlay">
+  <div id="adminDrawer">
+    <button class="admin-close btn btn-ghost" id="adminClose" style="padding:8px 14px;font-size:12px;">Cerrar ✕</button>
+    <div id="adminContent"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   Todo el contenido del sitio vive ahora en el backend
+   (carpeta data/config.json en el servidor). El frontend
+   solo lo lee y, si estás logueado como administrador, lo
+   edita a través de la API.
+   ========================================================= */
+const API = ""; // mismo origen (el backend sirve este archivo)
+let CONFIG = null;
+let state = { openCasitaId:null, carouselIndex:0, calYear:null, calMonth:null, adminUnlocked:false, adminTab:"casitas" };
+
+function authHeader(){
+  return { "x-admin-password": sessionStorage.getItem("adminAuth") || "" };
+}
+function waLink(text){
+  return "https://wa.me/" + CONFIG.business.whatsappNumber + "?text=" + encodeURIComponent(text);
+}
+function showToast(msg, isError){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.toggle("error", !!isError);
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"), 2400);
+}
+
+/* ---------- API ---------- */
+async function fetchConfig(){
+  const res = await fetch(API + "/api/config");
+  if(!res.ok) throw new Error("No se pudo cargar el sitio");
+  return res.json();
+}
+async function saveConfig(){
+  const res = await fetch(API + "/api/config", {
+    method:"PUT",
+    headers:{ "Content-Type":"application/json", ...authHeader() },
+    body: JSON.stringify(CONFIG)
+  });
+  if(!res.ok){ showToast("No se pudo guardar (revisá tu sesión de admin)", true); return false; }
+  showToast("Cambios guardados");
+  return true;
+}
+async function uploadPhoto(file){
+  const form = new FormData();
+  form.append("photo", file);
+  const res = await fetch(API + "/api/upload", { method:"POST", headers: authHeader(), body: form });
+  if(!res.ok){ showToast("No se pudo subir la foto", true); return null; }
+  const data = await res.json();
+  return data.url;
+}
+
+/* ---------- NAV ---------- */
+window.addEventListener("scroll", ()=>{
+  document.getElementById("nav").classList.toggle("scrolled", window.scrollY > 60);
+});
+
+/* ---------- RENDER: LINEUP ---------- */
+function renderLineup(){
+  const grid = document.getElementById("lineupGrid");
+  grid.innerHTML = "";
+  CONFIG.casitas.forEach(c=>{
+    const card = document.createElement("div");
+    card.className = "casa-card";
+    card.innerHTML = `
+      <div class="casa-photo">
+        <span class="casa-tag">${c.tag}</span>
+        <img src="${c.mainPhoto}" alt="${c.name}">
+      </div>
+      <div class="casa-body">
+        <h3>${c.name}</h3>
+        <div class="casa-meta"><span>🛏 ${c.bedrooms}</span><span>🛁 ${c.bathrooms}</span><span>👤 ${c.capacity}</span></div>
+        <p class="casa-desc">${c.desc}</p>
+        <div class="casa-price">${c.price} <small>${c.priceUnit}</small></div>
+        <div class="casa-actions">
+          <button class="btn btn-ghost" data-open="${c.id}">Ver casita</button>
+          <a class="btn btn-whatsapp" href="${waLink('Hola! Quiero reservar la '+c.name+' en Casitas Atlántida.')}" target="_blank" rel="noopener">Reservar</a>
+        </div>
+      </div>`;
+    grid.appendChild(card);
+  });
+  grid.querySelectorAll("[data-open]").forEach(btn=>{
+    btn.addEventListener("click", ()=> openDetail(parseInt(btn.dataset.open)));
+  });
+}
+
+/* ---------- RENDER: DETAIL ---------- */
+function openDetail(id){
+  const c = CONFIG.casitas.find(x=>x.id===id);
+  if(!c) return;
+  state.openCasitaId = id;
+  state.carouselIndex = 0;
+  const today = new Date();
+  state.calYear = today.getFullYear();
+  state.calMonth = today.getMonth();
+
+  document.getElementById("detailTitle").textContent = c.name;
+  document.getElementById("detailDesc").textContent = c.desc;
+  document.getElementById("detailMeta").innerHTML = `<span>🛏 ${c.bedrooms}</span><span>🛁 ${c.bathrooms}</span><span>👤 ${c.capacity}</span><span>📍 ${c.tag}</span>`;
+  document.getElementById("detailPrice").innerHTML = `${c.price} <small>${c.priceUnit}</small>`;
+  document.getElementById("detailWhatsapp").href = waLink('Hola! Quiero reservar la '+c.name+' en Casitas Atlántida.');
+
+  renderCarousel(c);
+  renderCalendar();
+
+  const panel = document.getElementById("detailPanel");
+  panel.classList.add("open");
+  panel.scrollIntoView({behavior:"smooth", block:"start"});
+}
+document.getElementById("closeDetail").addEventListener("click", ()=>{
+  document.getElementById("detailPanel").classList.remove("open");
+  document.getElementById("casitas").scrollIntoView({behavior:"smooth"});
+});
+
+function renderCarousel(c){
+  const track = document.getElementById("carouselTrack");
+  const dots = document.getElementById("carouselDots");
+  track.innerHTML = "";
+  dots.innerHTML = "";
+  c.gallery.forEach((src,i)=>{
+    const img = document.createElement("img");
+    img.src = src; img.alt = c.name + " foto " + (i+1);
+    if(i===state.carouselIndex) img.classList.add("active");
+    track.appendChild(img);
+    const dot = document.createElement("span");
+    if(i===state.carouselIndex) dot.classList.add("active");
+    dot.addEventListener("click", ()=>{ state.carouselIndex=i; renderCarousel(c); });
+    dots.appendChild(dot);
+  });
+}
+document.getElementById("carPrev").addEventListener("click", ()=>{
+  const c = CONFIG.casitas.find(x=>x.id===state.openCasitaId); if(!c) return;
+  state.carouselIndex = (state.carouselIndex - 1 + c.gallery.length) % c.gallery.length;
+  renderCarousel(c);
+});
+document.getElementById("carNext").addEventListener("click", ()=>{
+  const c = CONFIG.casitas.find(x=>x.id===state.openCasitaId); if(!c) return;
+  state.carouselIndex = (state.carouselIndex + 1) % c.gallery.length;
+  renderCarousel(c);
+});
+
+/* ---------- RENDER: CALENDAR ---------- */
+const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+const DOW = ["Lu","Ma","Mi","Ju","Vi","Sá","Do"];
+
+function pad(n){ return n<10 ? "0"+n : ""+n; }
+function dateKey(y,m,d){ return y+"-"+pad(m+1)+"-"+pad(d); }
+
+function renderCalendar(){
+  const id = state.openCasitaId;
+  const grid = document.getElementById("calGrid");
+  const label = document.getElementById("calMonthLabel");
+  const y = state.calYear, m = state.calMonth;
+  label.textContent = MESES[m] + " " + y;
+
+  grid.innerHTML = "";
+  DOW.forEach(d=>{
+    const el = document.createElement("div");
+    el.className = "dow"; el.textContent = d;
+    grid.appendChild(el);
+  });
+
+  const firstDay = new Date(y, m, 1);
+  let startOffset = firstDay.getDay() - 1; // Monday-first
+  if(startOffset < 0) startOffset = 6;
+  const daysInMonth = new Date(y, m+1, 0).getDate();
+  const busySet = new Set((CONFIG.availability[id] || []));
+  const todayKey = dateKey(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+
+  for(let i=0;i<startOffset;i++){
+    const el = document.createElement("div"); el.className="cal-day blank"; grid.appendChild(el);
+  }
+  for(let d=1; d<=daysInMonth; d++){
+    const key = dateKey(y,m,d);
+    const el = document.createElement("div");
+    const isPast = key < todayKey;
+    el.className = "cal-day" + (isPast ? " past" : "") + (busySet.has(key) ? " busy" : "");
+    el.textContent = d;
+    if(state.adminUnlocked){
+      el.classList.add("editable");
+      el.addEventListener("click", async ()=>{
+        if(busySet.has(key)){ busySet.delete(key); } else { busySet.add(key); }
+        CONFIG.availability[id] = Array.from(busySet);
+        renderCalendar();
+        await saveConfig();
+      });
+    }
+    grid.appendChild(el);
+  }
+}
+document.getElementById("calPrev").addEventListener("click", ()=>{
+  state.calMonth--; if(state.calMonth<0){ state.calMonth=11; state.calYear--; }
+  renderCalendar();
+});
+document.getElementById("calNext").addEventListener("click", ()=>{
+  state.calMonth++; if(state.calMonth>11){ state.calMonth=0; state.calYear++; }
+  renderCalendar();
+});
+
+/* ---------- RENDER: PAYMENTS ---------- */
+function renderPayments(){
+  const grid = document.getElementById("payGrid");
+  grid.innerHTML = "";
+  CONFIG.paymentMethods.forEach(p=>{
+    const card = document.createElement("div");
+    card.className = "pay-card";
+    card.innerHTML = `<div class="pay-icon">${p.icon || "$"}</div><h3>${p.title}</h3><p>${p.desc}</p>`;
+    grid.appendChild(card);
+  });
+}
+
+/* ---------- RENDER: GLOBAL ---------- */
+function renderGlobal(){
+  const link = waLink("Hola! Quiero consultar por disponibilidad en Casitas Atlántida.");
+  document.getElementById("heroWhatsapp").href = link;
+  document.getElementById("navCta").href = link;
+  document.getElementById("footerWhatsapp").href = link;
+  document.getElementById("footerLocation").textContent = CONFIG.business.location;
+  document.getElementById("year").textContent = new Date().getFullYear();
+  document.title = CONFIG.business.name + " — Alquiler temporal frente al mar";
+}
+
+function renderAll(){
+  renderGlobal();
+  renderLineup();
+  renderPayments();
+  if(state.openCasitaId){
+    openDetail(state.openCasitaId);
+  }
+}
+
+/* =========================================================
+   PANEL DEL PROPIETARIO
+   ========================================================= */
+const adminOverlay = document.getElementById("adminOverlay");
+const adminContent = document.getElementById("adminContent");
+
+document.getElementById("adminFab").addEventListener("click", ()=>{
+  adminOverlay.classList.add("open");
+  renderAdmin();
+});
+document.getElementById("adminClose").addEventListener("click", ()=>{
+  adminOverlay.classList.remove("open");
+});
+
+function renderAdmin(){
+  if(!state.adminUnlocked){
+    adminContent.innerHTML = `
+      <div class="login-box">
+        <h2>Panel del propietario</h2>
+        <p class="sub">Ingresá la contraseña para editar fotos, disponibilidad y medios de pago. Los cambios se guardan en el servidor y ya se ven para cualquier visitante.</p>
+        <input type="password" id="adminPass" placeholder="Contraseña">
+        <button class="btn btn-dark" id="adminLoginBtn" style="width:100%;padding:12px;">Entrar</button>
+      </div>`;
+    document.getElementById("adminLoginBtn").addEventListener("click", doLogin);
+    document.getElementById("adminPass").addEventListener("keydown", e=>{ if(e.key==="Enter") doLogin(); });
+    return;
+  }
+
+  adminContent.innerHTML = `
+    <h2>Panel del propietario</h2>
+    <p class="sub">Los cambios se guardan directamente en el servidor: se ven al instante para cualquiera que entre al sitio, no hace falta copiar ni pegar nada.</p>
+    <div class="admin-tabs" id="adminTabs">
+      <button data-tab="casitas">Casitas</button>
+      <button data-tab="pagos">Medios de pago</button>
+      <button data-tab="negocio">Datos del negocio</button>
+      <button data-tab="backup">Copia de seguridad</button>
+    </div>
+    <div id="adminTabBody"></div>
+  `;
+  const tabs = document.getElementById("adminTabs");
+  tabs.querySelectorAll("button").forEach(b=>{
+    if(b.dataset.tab === state.adminTab) b.classList.add("active");
+    b.addEventListener("click", ()=>{ state.adminTab = b.dataset.tab; renderAdmin(); });
+  });
+  renderAdminTabBody();
+}
+
+async function doLogin(){
+  const val = document.getElementById("adminPass").value;
+  const res = await fetch(API + "/api/admin/login", {
+    method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({password: val})
+  });
+  if(res.ok){
+    sessionStorage.setItem("adminAuth", val);
+    state.adminUnlocked = true;
+    renderAdmin();
+  } else {
+    showToast("Contraseña incorrecta", true);
+  }
+}
+
+function renderAdminTabBody(){
+  const body = document.getElementById("adminTabBody");
+
+  if(state.adminTab === "casitas"){
+    body.innerHTML = CONFIG.casitas.map(c=>`
+      <div class="admin-section">
+        <h3>${c.name}</h3>
+        <div class="field">
+          <label>Nombre</label>
+          <input type="text" data-field="name" data-id="${c.id}" value="${c.name}">
+        </div>
+
+        <div class="field">
+          <label>Foto principal</label>
+          <div class="thumb-row"><img src="${c.mainPhoto}" alt=""></div>
+          <input type="file" accept="image/*" data-upload-main="${c.id}">
+          <div class="hint">Subí una foto desde tu celular o PC. También podés pegar un link directo abajo si preferís.</div>
+          <input type="text" data-field="mainPhoto" data-id="${c.id}" value="${c.mainPhoto}" style="margin-top:8px;">
+        </div>
+
+        <div class="field">
+          <label>Galería de fotos</label>
+          <div class="thumb-row">${c.gallery.map(g=>`<img src="${g}" alt="">`).join("")}</div>
+          <input type="file" accept="image/*" multiple data-upload-gallery="${c.id}">
+          <div class="hint">Podés seleccionar varias fotos a la vez. Se agregan a la galería existente.</div>
+          <textarea data-field="gallery" data-id="${c.id}" style="margin-top:8px;">${c.gallery.join("\\n")}</textarea>
+          <div class="hint">También podés editar la lista de links a mano (una URL por línea) para reordenar o quitar fotos.</div>
+        </div>
+
+        <div class="field">
+          <label>Etiqueta</label>
+          <input type="text" data-field="tag" data-id="${c.id}" value="${c.tag}">
+        </div>
+        <div class="field">
+          <label>Capacidad</label>
+          <input type="text" data-field="capacity" data-id="${c.id}" value="${c.capacity}">
+        </div>
+        <div class="field">
+          <label>Dormitorios</label>
+          <input type="text" data-field="bedrooms" data-id="${c.id}" value="${c.bedrooms}">
+        </div>
+        <div class="field">
+          <label>Baños</label>
+          <input type="text" data-field="bathrooms" data-id="${c.id}" value="${c.bathrooms}">
+        </div>
+        <div class="field">
+          <label>Descripción</label>
+          <textarea data-field="desc" data-id="${c.id}">${c.desc}</textarea>
+        </div>
+        <div class="field">
+          <label>Precio</label>
+          <input type="text" data-field="price" data-id="${c.id}" value="${c.price}">
+        </div>
+        <div class="field">
+          <label>Unidad de precio</label>
+          <input type="text" data-field="priceUnit" data-id="${c.id}" value="${c.priceUnit}">
+        </div>
+      </div>
+    `).join("");
+
+    body.querySelectorAll("[data-field]").forEach(input=>{
+      input.addEventListener("change", async ()=>{
+        const id = parseInt(input.dataset.id);
+        const field = input.dataset.field;
+        const c = CONFIG.casitas.find(x=>x.id===id);
+        if(field === "gallery"){
+          c.gallery = input.value.split("\\n").map(s=>s.trim()).filter(Boolean);
+        } else {
+          c[field] = input.value;
+        }
+        renderAll();
+        await saveConfig();
+        renderAdminTabBody();
+      });
+    });
+
+    body.querySelectorAll("[data-upload-main]").forEach(input=>{
+      input.addEventListener("change", async ()=>{
+        const id = parseInt(input.dataset.uploadMain);
+        const file = input.files[0];
+        if(!file) return;
+        showToast("Subiendo foto…");
+        const url = await uploadPhoto(file);
+        if(!url) return;
+        const c = CONFIG.casitas.find(x=>x.id===id);
+        c.mainPhoto = url;
+        renderAll();
+        await saveConfig();
+        renderAdminTabBody();
+      });
+    });
+
+    body.querySelectorAll("[data-upload-gallery]").forEach(input=>{
+      input.addEventListener("change", async ()=>{
+        const id = parseInt(input.dataset.uploadGallery);
+        const files = Array.from(input.files || []);
+        if(!files.length) return;
+        showToast("Subiendo fotos…");
+        const c = CONFIG.casitas.find(x=>x.id===id);
+        for(const file of files){
+          const url = await uploadPhoto(file);
+          if(url) c.gallery.push(url);
+        }
+        renderAll();
+        await saveConfig();
+        renderAdminTabBody();
+      });
+    });
+  }
+
+  if(state.adminTab === "pagos"){
+    body.innerHTML = CONFIG.paymentMethods.map((p,i)=>`
+      <div class="pay-edit-row">
+        <button class="remove-pay" data-remove="${i}">Quitar ✕</button>
+        <div class="field"><label>Título</label><input type="text" data-pay="title" data-i="${i}" value="${p.title}"></div>
+        <div class="field"><label>Descripción</label><textarea data-pay="desc" data-i="${i}">${p.desc}</textarea></div>
+      </div>
+    `).join("") + `<button class="btn btn-ghost" id="addPay" style="width:100%;padding:12px;">+ Agregar medio de pago</button>`;
+
+    body.querySelectorAll("[data-pay]").forEach(input=>{
+      input.addEventListener("change", async ()=>{
+        const i = parseInt(input.dataset.i);
+        CONFIG.paymentMethods[i][input.dataset.pay] = input.value;
+        renderPayments();
+        await saveConfig();
+      });
+    });
+    body.querySelectorAll("[data-remove]").forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        CONFIG.paymentMethods.splice(parseInt(btn.dataset.remove),1);
+        renderPayments(); renderAdminTabBody();
+        await saveConfig();
+      });
+    });
+    document.getElementById("addPay").addEventListener("click", async ()=>{
+      CONFIG.paymentMethods.push({icon:"$", title:"Nuevo medio de pago", desc:"Descripción"});
+      renderPayments(); renderAdminTabBody();
+      await saveConfig();
+    });
+  }
+
+  if(state.adminTab === "negocio"){
+    body.innerHTML = `
+      <div class="field"><label>Nombre del negocio</label><input type="text" id="bizName" value="${CONFIG.business.name}"></div>
+      <div class="field">
+        <label>Número de WhatsApp</label>
+        <input type="text" id="bizWhatsapp" value="${CONFIG.business.whatsappNumber}">
+        <div class="hint">Con código de país, sin + ni espacios. Ej: 59899123456</div>
+      </div>
+      <div class="field"><label>Ubicación</label><input type="text" id="bizLocation" value="${CONFIG.business.location}"></div>
+      <button class="btn btn-dark" id="saveBiz" style="width:100%;padding:12px;">Guardar datos</button>
+
+      <div class="admin-section">
+        <h3>Cambiar contraseña del panel</h3>
+        <div class="field"><label>Contraseña nueva</label><input type="text" id="newPass" placeholder="Mínimo 4 caracteres"></div>
+        <button class="btn btn-ghost" id="changePassBtn" style="width:100%;padding:12px;">Cambiar contraseña</button>
+      </div>
+    `;
+    document.getElementById("saveBiz").addEventListener("click", async ()=>{
+      CONFIG.business.name = document.getElementById("bizName").value;
+      CONFIG.business.whatsappNumber = document.getElementById("bizWhatsapp").value.replace(/\\D/g,"");
+      CONFIG.business.location = document.getElementById("bizLocation").value;
+      renderGlobal();
+      await saveConfig();
+    });
+    document.getElementById("changePassBtn").addEventListener("click", async ()=>{
+      const newPassword = document.getElementById("newPass").value;
+      const res = await fetch(API + "/api/admin/change-password", {
+        method:"POST", headers:{ "Content-Type":"application/json", ...authHeader() },
+        body: JSON.stringify({ newPassword })
+      });
+      if(res.ok){
+        sessionStorage.setItem("adminAuth", newPassword);
+        showToast("Contraseña actualizada");
+        document.getElementById("newPass").value = "";
+      } else {
+        const err = await res.json().catch(()=>({}));
+        showToast(err.error || "No se pudo cambiar la contraseña", true);
+      }
+    });
+  }
+
+  if(state.adminTab === "backup"){
+    body.innerHTML = `
+      <p class="sub">El sitio ya guarda todo automáticamente en el servidor. Esta copia es solo para tener un respaldo propio.</p>
+      <button class="btn btn-dark" id="downloadBackup" style="width:100%;padding:12px;">Descargar copia de seguridad (.json)</button>
+    `;
+    document.getElementById("downloadBackup").addEventListener("click", ()=>{
+      const blob = new Blob([JSON.stringify(CONFIG, null, 2)], {type:"application/json"});
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "casitas-atlantida-backup.json";
+      a.click();
+    });
+  }
+}
+
+/* ---------- INIT ---------- */
+(async function init(){
+  try{
+    CONFIG = await fetchConfig();
+    renderAll();
+  }catch(e){
+    document.body.innerHTML = '<div style="padding:60px;text-align:center;font-family:sans-serif;">No se pudo conectar con el servidor. Si estás probando este archivo localmente, iniciá el backend primero (ver README).</div>';
+  }
+})();
+</script>
+</body>
+</html>

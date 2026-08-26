@@ -1,0 +1,69 @@
+{
+  "business": {
+    "name": "Casitas Atlántida",
+    "whatsappNumber": "59899123456",
+    "adminPassword": "atlantida2026",
+    "location": "Atlántida, Canelones, Uruguay"
+  },
+  "casitas": [
+    {
+      "id": 1, "name": "Casa 1 · Duna",
+      "mainPhoto": "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80",
+      "gallery": [
+        "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=1200&q=80"
+      ],
+      "tag": "Frente al mar", "capacity": "4 personas", "bedrooms": "2 dormitorios", "bathrooms": "1 baño",
+      "desc": "A metros de la playa, con deck de madera y vista abierta al horizonte. Ideal para parejas o familias chicas que buscan silencio y aire de mar.",
+      "price": "USD 90", "priceUnit": "por noche"
+    },
+    {
+      "id": 2, "name": "Casa 2 · Médano",
+      "mainPhoto": "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80",
+      "gallery": [
+        "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1523217582562-09d0def993a6?auto=format&fit=crop&w=1200&q=80"
+      ],
+      "tag": "Con parrillero", "capacity": "6 personas", "bedrooms": "2 dormitorios", "bathrooms": "1 baño",
+      "desc": "Casa amplia con parrillero y patio cerrado, pensada para grupos y familias grandes. A 5 minutos caminando de la rambla.",
+      "price": "USD 130", "priceUnit": "por noche"
+    },
+    {
+      "id": 3, "name": "Casa 3 · Faro",
+      "mainPhoto": "https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=1200&q=80",
+      "gallery": [
+        "https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=1200&q=80"
+      ],
+      "tag": "Vista al faro", "capacity": "2-3 personas", "bedrooms": "2 dormitorios", "bathrooms": "1 baño",
+      "desc": "La más íntima de las cuatro. Perfecta para una escapada de a dos, con balcón con vista al faro de Atlántida.",
+      "price": "USD 70", "priceUnit": "por noche"
+    },
+    {
+      "id": 4, "name": "Casa 4 · Bahía",
+      "mainPhoto": "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1200&q=80",
+      "gallery": [
+        "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1449844908441-8829872d2607?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&w=1200&q=80"
+      ],
+      "tag": "Pet friendly", "capacity": "5 personas", "bedrooms": "2 dormitorios", "bathrooms": "1 baño",
+      "desc": "Casa luminosa con jardín, apta para mascotas. A dos cuadras de la playa y cerca de los comercios del centro.",
+      "price": "USD 100", "priceUnit": "por noche"
+    }
+  ],
+  "paymentMethods": [
+    { "icon": "$", "title": "Transferencia bancaria", "desc": "Transferencia o depósito a cuenta bancaria en pesos o dólares. Te enviamos los datos por WhatsApp al confirmar." },
+    { "icon": "✓", "title": "Efectivo", "desc": "Pago en efectivo al check-in, en pesos uruguayos o dólares." },
+    { "icon": "⇄", "title": "Mercado Pago", "desc": "Pago con tarjeta o dinero en cuenta a través del link de Mercado Pago." }
+  ],
+  "availability": {
+    "1": ["2026-08-20","2026-08-21","2026-08-22","2026-09-05","2026-09-06"],
+    "2": ["2026-08-15","2026-08-16","2026-08-17","2026-08-29","2026-08-30","2026-08-31"],
+    "3": ["2026-09-01","2026-09-02","2026-09-03"],
+    "4": []
+  }
+}
