@@ -250,6 +250,18 @@
   }
   #musicBtn:hover{background:var(--ocean);}
 
+  #spotifyPanel{
+    position:fixed; left:26px; bottom:80px; z-index:300; display:none;
+    width:min(340px, calc(100vw - 52px)); border-radius:12px; overflow:hidden; background:#121212;
+    box-shadow:0 12px 32px rgba(0,0,0,.35);
+  }
+  #spotifyPanel.open{display:block;}
+  #spotifyPanel iframe{display:block; border:0;}
+
+  .dropzone{display:flex; align-items:center; justify-content:center; text-align:center; gap:8px; width:100%; padding:20px 12px; border:1.5px dashed #c9c4b8; border-radius:8px; font-size:13px; color:#666; cursor:pointer; background:#fafaf7; transition:background .2s, border-color .2s;}
+  .dropzone:hover{border-color:var(--ocean); background:#f1f7f8;}
+  .drag{outline:2px dashed var(--ocean); outline-offset:6px; background:#f1f7f8; border-radius:6px;}
+
   /* ADMIN: FOTOS */
   .casa-picker{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:20px;}
   .casa-picker button{padding:8px 14px; font-size:12.5px; border:1px solid var(--line); border-radius:100px; color:#555;}
@@ -368,9 +380,9 @@
 
 <header class="hero" id="top">
   <div class="hero-inner">
-    <div class="hero-eyebrow">Atlántida, Canelones — frente al mar</div>
-    <h1>Cuatro casitas.<br>Un mismo horizonte.</h1>
-    <p>Alquiler temporal en Atlántida. Elegí la casita que mejor se adapta a tu grupo, revisá disponibilidad y reservá directo por WhatsApp.</p>
+    <div class="hero-eyebrow" id="heroEyebrow">Atlántida, Canelones — frente al mar</div>
+    <h1 id="heroTitle">Cuatro casitas.<br>Un mismo horizonte.</h1>
+    <p id="heroText">Alquiler temporal en Atlántida. Elegí la casita que mejor se adapta a tu grupo, revisá disponibilidad y reservá directo por WhatsApp.</p>
     <div class="hero-actions">
       <a href="#casitas" class="btn btn-primary">Ver las casitas</a>
       <a href="#" id="heroWhatsapp" class="btn btn-outline">Consultar por WhatsApp</a>
@@ -497,6 +509,7 @@
 
 <audio id="bgm" loop preload="none"></audio>
 <button id="musicBtn" aria-label="Música de fondo">♪ Música</button>
+<div id="spotifyPanel"><iframe id="spotifyFrame" title="Reproductor de Spotify" width="100%" height="152" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe></div>
 
 <button id="adminFab" title="Panel del propietario">⚙</button>
 
@@ -520,6 +533,12 @@ const API = ""; // mismo origen (el backend sirve este archivo)
 let CONFIG = null;
 let state = { openCasitaId:null, carouselIndex:0, sectionFilter:-1, calYear:null, calMonth:null, adminUnlocked:false, adminTab:"casitas", adminCasa:null };
 const DEFAULT_HERO = "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&w=2000&q=80";
+const DEFAULT_HERO_TEXT = {
+  heroEyebrow: "Atlántida, Canelones — frente al mar",
+  heroTitle: "Cuatro casitas.\nUn mismo horizonte.",
+  heroText: "Alquiler temporal en Atlántida. Elegí la casita que mejor se adapta a tu grupo, revisá disponibilidad y reservá directo por WhatsApp."
+};
+function heroTextOf(key){ const v = CONFIG.business[key]; return typeof v === "string" ? v : DEFAULT_HERO_TEXT[key]; }
 
 function authHeader(){
   return { "x-admin-password": sessionStorage.getItem("adminAuth") || "" };
@@ -554,21 +573,27 @@ async function saveConfig(){
 // Achica las fotos del celular/cámara antes de subirlas (el sitio carga más rápido
 // y el disco rinde más). Si el navegador no puede, se sube el archivo original.
 async function prepareImage(file, maxDim){
+  const isHeic = /image\/hei[cf]/i.test(file.type) || /\.hei[cf]$/i.test(file.name);
   try{
-    if(!/^image\/(jpeg|png|webp)$/.test(file.type)) return file;
+    if(!isHeic && !/^image\/(jpeg|png|webp)$/.test(file.type)) return file;
     const bmp = await createImageBitmap(file);
     const scale = Math.min(1, maxDim / Math.max(bmp.width, bmp.height));
-    if(scale === 1 && file.size < 1.5*1024*1024){ if(bmp.close) bmp.close(); return file; }
+    if(!isHeic && scale === 1 && file.size < 1.5*1024*1024){ if(bmp.close) bmp.close(); return file; }
     const cv = document.createElement("canvas");
     cv.width = Math.round(bmp.width * scale); cv.height = Math.round(bmp.height * scale);
     cv.getContext("2d").drawImage(bmp, 0, 0, cv.width, cv.height);
     if(bmp.close) bmp.close();
     const blob = await new Promise(r=>cv.toBlob(r, "image/jpeg", 0.85));
-    return blob ? new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", {type:"image/jpeg"}) : file;
-  }catch(e){ return file; }
+    if(blob) return new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", {type:"image/jpeg"});
+    return isHeic ? null : file;
+  }catch(e){ return isHeic ? null : file; }
 }
 async function uploadPhoto(file, maxDim){
   const ready = await prepareImage(file, maxDim || 1920);
+  if(!ready){
+    showToast("Este navegador no pudo convertir una foto HEIC. Probá con Safari o exportala como JPG.", true);
+    return null;
+  }
   const form = new FormData();
   form.append("photo", ready);
   const res = await fetch(API + "/api/upload", { method:"POST", headers: authHeader(), body: form });
@@ -579,6 +604,45 @@ async function uploadPhoto(file, maxDim){
   const data = await res.json();
   return data.url;
 }
+// Sube varias fotos de a 3 a la vez, conservando el orden en que las elegiste.
+async function uploadMany(files, onProgress){
+  const urls = new Array(files.length).fill(null);
+  let next = 0, done = 0;
+  async function worker(){
+    while(next < files.length){
+      const i = next++;
+      urls[i] = await uploadPhoto(files[i]);
+      done++; onProgress(done, files.length);
+    }
+  }
+  await Promise.all([worker(), worker(), worker()]);
+  return urls.filter(Boolean);
+}
+function hasFiles(e){ return !!(e.dataTransfer && Array.from(e.dataTransfer.types || []).includes("Files")); }
+function imageFiles(list){
+  return Array.from(list || []).filter(f=>/^image\//.test(f.type) || /\.(heic|heif|jpe?g|png|webp)$/i.test(f.name));
+}
+// Convierte un elemento en zona donde se pueden soltar archivos arrastrados desde el Mac.
+function bindDrop(el, onFiles){
+  if(!el) return;
+  ["dragenter","dragover"].forEach(ev=>el.addEventListener(ev, e=>{
+    if(!hasFiles(e)) return;
+    e.preventDefault(); e.stopPropagation(); el.classList.add("drag");
+  }));
+  el.addEventListener("dragleave", e=>{ if(!el.contains(e.relatedTarget)) el.classList.remove("drag"); });
+  el.addEventListener("drop", e=>{
+    if(!hasFiles(e)) return;
+    e.preventDefault(); e.stopPropagation(); el.classList.remove("drag");
+    const all = e.dataTransfer.files, imgs = imageFiles(all);
+    if(!imgs.length){ showToast("Soltá archivos de imagen (JPG, PNG o HEIC)", true); return; }
+    if(imgs.length < all.length) showToast((all.length - imgs.length) + " archivo(s) no son imágenes y se ignoraron", true);
+    onFiles(imgs);
+  });
+}
+// Si se suelta un archivo fuera de una zona, el navegador no debe abrirlo y sacarte de la página.
+window.addEventListener("dragover", e=>{ if(hasFiles(e)) e.preventDefault(); });
+window.addEventListener("drop", e=>{ if(hasFiles(e)) e.preventDefault(); });
+
 async function uploadAudio(file){
   const form = new FormData();
   form.append("audio", file);
@@ -1211,14 +1275,14 @@ function renderPhotosTab(body){
   const names = ["Exterior y jardín","Living y cocina","Dormitorios","Baño","Entorno y playa"];
   body.innerHTML = casaPickerHtml(c.id) + `
     <p class="sub">Subí, ordená y quitá las fotos de ${escHtml(c.name)} por sector, como en Airbnb. Las fotos se achican solas para que el sitio cargue rápido. Usá JPG o PNG.</p>
-    <div class="admin-section" style="border-top:none;margin-top:0;padding-top:0;">
+    <div class="admin-section" id="coverDrop" style="border-top:none;margin-top:0;padding-top:0;">
       <h3>Foto de portada</h3>
       <div class="thumb-row"><img src="${escAttr(mainPhotoOf(c))}" style="width:140px;height:96px;" alt=""></div>
-      <input type="file" accept="image/*" id="coverFile">
-      <div class="hint">Es la que se ve en la tarjeta de la casita. También podés tocar ★ en cualquier foto de abajo.</div>
+      <input type="file" accept="image/*,.heic,.heif" id="coverFile">
+      <div class="hint">Es la que se ve en la tarjeta de la casita. Podés arrastrar una foto desde tu Mac sobre este bloque, o tocar ★ en cualquier foto de abajo.</div>
     </div>
     ${secs.map((s,si)=>`
-      <div class="admin-section">
+      <div class="admin-section" data-dropsec="${si}">
         <div class="sec-head">
           <input type="text" data-secname="${si}" value="${escAttr(s.name)}">
           <button class="remove-sec" data-secdel="${si}">Quitar sector ✕</button>
@@ -1235,7 +1299,7 @@ function renderPhotosTab(body){
               </div>
             </div>`).join("") : '<p class="hint" style="grid-column:1/-1;">Este sector todavía no tiene fotos.</p>'}
         </div>
-        <label class="btn btn-ghost upload-btn">＋ Subir fotos a este sector<input type="file" accept="image/*" multiple hidden data-secup="${si}"></label>
+        <label class="dropzone">＋ Arrastrá varias fotos acá o hacé clic para elegirlas<input type="file" accept="image/*,.heic,.heif" multiple hidden data-secup="${si}"></label>
       </div>`).join("")}
     <div class="admin-section">
       <h3>Agregar sector</h3>
@@ -1283,18 +1347,30 @@ function renderPhotosTab(body){
     }
     await commitPhotos(c, body);
   }));
-  body.querySelectorAll("[data-secup]").forEach(inp=>inp.addEventListener("change", async ()=>{
-    const si = parseInt(inp.dataset.secup), files = Array.from(inp.files || []);
+  async function addToSection(si, files){
     if(!files.length) return;
-    let n = 0;
-    for(const f of files){
-      n++; showToast("Subiendo " + n + " de " + files.length + "…");
-      const url = await uploadPhoto(f);
-      if(url) secs[si].photos.push(url);
+    showToast("Subiendo " + files.length + " foto(s)…");
+    const urls = await uploadMany(files, (d,n)=>showToast("Subidas " + d + " de " + n + "…"));
+    if(!urls.length){
+      showToast("No se pudo subir ninguna foto. Si son HEIC, probá con Safari o exportalas como JPG.", true);
+      return;
     }
+    secs[si].photos.push(...urls);
     if(!c.mainPhoto) c.mainPhoto = secs[si].photos[0] || "";
     await commitPhotos(c, body);
+    showToast(urls.length + " foto(s) agregadas" + (urls.length < files.length ? " (" + (files.length - urls.length) + " con error)" : ""));
+  }
+  body.querySelectorAll("[data-secup]").forEach(inp=>inp.addEventListener("change", ()=>{
+    addToSection(parseInt(inp.dataset.secup), imageFiles(inp.files));
   }));
+  body.querySelectorAll("[data-dropsec]").forEach(el=>bindDrop(el, files=>addToSection(parseInt(el.dataset.dropsec), files)));
+  bindDrop(body.querySelector("#coverDrop"), async files=>{
+    showToast("Subiendo foto…");
+    const url = await uploadPhoto(files[0]);
+    if(!url) return;
+    c.mainPhoto = url;
+    await commitPhotos(c, body);
+  });
   body.querySelector("#addSec").addEventListener("click", async ()=>{
     const name = body.querySelector("#newSecName").value.trim();
     if(!name) return;
@@ -1308,11 +1384,19 @@ function renderCoverTab(body){
   const b = CONFIG.business;
   body.innerHTML = `
     <div class="admin-section" style="border-top:none;margin-top:0;padding-top:0;">
+      <h3>Textos de la portada</h3>
+      <div class="field"><label>Línea superior</label><input type="text" data-hero="heroEyebrow" value="${escAttr(heroTextOf("heroEyebrow"))}"></div>
+      <div class="field"><label>Título</label><textarea data-hero="heroTitle" style="min-height:64px;">${escHtml(heroTextOf("heroTitle"))}</textarea><div class="hint">Con Enter pasás a la línea siguiente.</div></div>
+      <div class="field"><label>Texto debajo del título</label><textarea data-hero="heroText">${escHtml(heroTextOf("heroText"))}</textarea></div>
+      <button class="btn btn-ghost" id="heroTextReset" style="width:100%;padding:11px;font-size:13px;">Volver a los textos originales</button>
+    </div>
+
+    <div class="admin-section" id="heroDrop">
       <h3>Imagen principal de la página</h3>
       <div class="thumb-row"><img src="${escAttr(b.heroImage || DEFAULT_HERO)}" style="width:200px;height:112px;" alt=""></div>
       <div class="field">
-        <input type="file" accept="image/*" id="heroFile">
-        <div class="hint">Conviene una foto horizontal y de buena calidad. Se adapta sola al tamaño de cada pantalla.</div>
+        <input type="file" accept="image/*,.heic,.heif" id="heroFile">
+        <div class="hint">Conviene una foto horizontal y de buena calidad. Podés arrastrarla desde tu Mac sobre este bloque.</div>
         <input type="text" id="heroUrl" value="${escAttr(b.heroImage || "")}" placeholder="o pegá un link directo a una imagen" style="margin-top:8px;">
       </div>
       <button class="btn btn-ghost" id="heroReset" style="width:100%;padding:11px;font-size:13px;">Volver a la imagen original</button>
@@ -1320,7 +1404,13 @@ function renderCoverTab(body){
 
     <div class="admin-section">
       <h3>Música de fondo</h3>
-      <p class="sub">Los navegadores no dejan que la música empiece sola con sonido: el visitante la activa con el botón ♪ que aparece abajo a la izquierda. Usá música sin derechos de autor (por ejemplo Pixabay Music o la Biblioteca de audio de YouTube).</p>
+      <p class="sub">Elegí una de las dos opciones. En ambos casos el visitante la activa con el botón ♪ que aparece abajo a la izquierda, porque los navegadores no dejan que la música empiece sola con sonido.</p>
+      <div class="field">
+        <label>Opción 1: link de Spotify (canción, álbum o playlist)</label>
+        <input type="text" id="spotifyUrl" value="${escAttr(b.spotifyUrl || "")}" placeholder="https://open.spotify.com/playlist/...">
+        <div class="hint">Se muestra el reproductor de Spotify. Quien no tenga una sesión de Spotify iniciada en su navegador escucha solo un fragmento de unos 30 segundos. Si cargás un link de Spotify, se usa en lugar del MP3. En Spotify: Compartir → Copiar enlace.</div>
+      </div>
+      <p class="sub" style="margin-bottom:12px;">Opción 2: tu propio MP3, que suena de fondo. Usá música sin derechos de autor (por ejemplo Pixabay Music o la Biblioteca de audio de YouTube).</p>
       ${b.musicUrl ? `<audio controls src="${escAttr(b.musicUrl)}" style="width:100%;margin-bottom:12px;"></audio>` : ""}
       <div class="field">
         <label>Subir archivo de audio (MP3)</label>
@@ -1340,6 +1430,26 @@ function renderCoverTab(body){
     </div>`;
 
   const apply = async () => { renderAll(); await saveConfig(); renderCoverTab(body); };
+  body.querySelectorAll("[data-hero]").forEach(i=>i.addEventListener("change", async ()=>{
+    b[i.dataset.hero] = i.value; renderHero(); await saveConfig();
+  }));
+  body.querySelector("#heroTextReset").addEventListener("click", async ()=>{
+    Object.assign(b, DEFAULT_HERO_TEXT); await apply();
+  });
+  body.querySelector("#spotifyUrl").addEventListener("change", async e=>{
+    const v = e.target.value.trim();
+    if(v && !spotifyEmbed(v)){
+      showToast("Ese link no parece de Spotify. Copialo desde Compartir → Copiar enlace.", true);
+      return;
+    }
+    b.spotifyUrl = v; await apply();
+  });
+  bindDrop(body.querySelector("#heroDrop"), async files=>{
+    showToast("Subiendo imagen…");
+    const url = await uploadPhoto(files[0], 2400);
+    if(!url) return;
+    b.heroImage = url; await apply();
+  });
   body.querySelector("#heroFile").addEventListener("change", async e=>{
     const f = e.target.files[0]; if(!f) return;
     showToast("Subiendo imagen…");
@@ -1366,15 +1476,46 @@ function renderHero(){
   const hero = document.getElementById("top");
   const img = CONFIG.business.heroImage;
   hero.style.backgroundImage = img ? `url("${String(img).replace(/"/g, "%22")}")` : "";
+  document.getElementById("heroEyebrow").textContent = heroTextOf("heroEyebrow");
+  document.getElementById("heroTitle").innerHTML = escHtml(heroTextOf("heroTitle")).replace(/\n/g, "<br>");
+  document.getElementById("heroText").textContent = heroTextOf("heroText");
+}
+function spotifyEmbed(url){
+  const m = String(url || "").match(/open\.spotify\.com\/(?:intl-[a-z]{2}\/)?(track|album|playlist|episode|show|artist)\/([A-Za-z0-9]+)/);
+  return m ? "https://open.spotify.com/embed/" + m[1] + "/" + m[2] + "?utm_source=generator" : "";
 }
 function updateMusicBtn(){
-  const a = document.getElementById("bgm");
-  document.getElementById("musicBtn").textContent = a.paused ? "♪ Música" : "❚❚ Pausar música";
+  const btn = document.getElementById("musicBtn"), a = document.getElementById("bgm");
+  if(btn.dataset.mode === "spotify"){
+    btn.textContent = document.getElementById("spotifyPanel").classList.contains("open") ? "✕ Cerrar música" : "♪ Música";
+  } else {
+    btn.textContent = a.paused ? "♪ Música" : "❚❚ Pausar música";
+  }
 }
 let musicAutoBound = false;
 function renderMusic(){
   const b = CONFIG.business, audio = document.getElementById("bgm"), btn = document.getElementById("musicBtn");
+  const panel = document.getElementById("spotifyPanel"), frame = document.getElementById("spotifyFrame");
+  const sp = spotifyEmbed(b.spotifyUrl);
   const src = b.musicUrl || "";
+
+  if(sp){
+    // Spotify: reproductor visible; no se carga nada de Spotify hasta que el visitante lo abre
+    audio.pause(); audio.removeAttribute("src");
+    btn.dataset.mode = "spotify";
+    btn.style.display = "inline-flex";
+    if(frame.dataset.src !== sp){
+      frame.dataset.src = sp;
+      if(panel.classList.contains("open")) frame.src = sp; else frame.removeAttribute("src");
+    }
+    updateMusicBtn();
+    return;
+  }
+
+  // sin Spotify: se limpia el panel
+  btn.dataset.mode = "mp3";
+  panel.classList.remove("open"); frame.removeAttribute("src"); delete frame.dataset.src;
+
   if(!src){
     audio.pause(); audio.removeAttribute("src"); btn.style.display = "none"; return;
   }
@@ -1386,14 +1527,21 @@ function renderMusic(){
     const start = e => {
       if(e.target.closest && e.target.closest("#musicBtn, #adminFab, #adminOverlay")) return;
       document.removeEventListener("pointerdown", start);
-      if(CONFIG.business.musicAutoOnTouch && audio.paused && audio.getAttribute("src")) audio.play().catch(()=>{});
+      if(CONFIG.business.musicAutoOnTouch && btn.dataset.mode === "mp3" && audio.paused && audio.getAttribute("src")) audio.play().catch(()=>{});
     };
     document.addEventListener("pointerdown", start);
   }
 }
 (function(){
-  const a = document.getElementById("bgm");
-  document.getElementById("musicBtn").addEventListener("click", ()=>{
+  const a = document.getElementById("bgm"), btn = document.getElementById("musicBtn");
+  const panel = document.getElementById("spotifyPanel"), frame = document.getElementById("spotifyFrame");
+  btn.addEventListener("click", ()=>{
+    if(btn.dataset.mode === "spotify"){
+      const open = panel.classList.toggle("open");
+      if(open && !frame.getAttribute("src") && frame.dataset.src) frame.src = frame.dataset.src;
+      updateMusicBtn();
+      return;
+    }
     if(a.paused) a.play().catch(()=>showToast("No se pudo reproducir la música", true));
     else a.pause();
   });
