@@ -23,14 +23,24 @@ const crypto = require("crypto");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const DATA_FILE = path.join(__dirname, "data", "config.json");
-const UPLOAD_DIR = path.join(__dirname, "public", "uploads");
+const SEED_FILE = path.join(__dirname, "data", "config.json");
 const PUBLIC_DIR = path.join(__dirname, "public");
 
+// Si existe la variable DATA_DIR (ej: /var/data en Render con disco persistente),
+// la configuración y las fotos se guardan ahí y sobreviven a reinicios y
+// actualizaciones. Sin DATA_DIR, todo funciona como antes (modo local).
+const DATA_DIR = process.env.DATA_DIR || null;
+const DATA_FILE = DATA_DIR ? path.join(DATA_DIR, "config.json") : SEED_FILE;
+const UPLOAD_DIR = DATA_DIR ? path.join(DATA_DIR, "uploads") : path.join(PUBLIC_DIR, "uploads");
+
+if (DATA_DIR && !fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+// Primera vez con disco nuevo: copiar la configuración inicial
+if (!fs.existsSync(DATA_FILE)) fs.copyFileSync(SEED_FILE, DATA_FILE);
 
 app.use(cors());
 app.use(express.json({ limit: "2mb" }));
+app.use("/uploads", express.static(UPLOAD_DIR));
 app.use(express.static(PUBLIC_DIR));
 
 /* ---------- helpers de almacenamiento ---------- */
