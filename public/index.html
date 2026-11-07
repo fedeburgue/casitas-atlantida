@@ -231,6 +231,12 @@
   .footer-col a:hover{color:#fff;}
   .footer-bottom{border-top:1px solid #2a3236; padding-top:24px; font-size:12.5px; color:#7a8085; display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;}
 
+  /* BONDADES */
+  .casa-amenities{display:flex; flex-wrap:wrap; gap:6px;}
+  .casa-amenities span{font-size:12px; color:#555; background:var(--mist); padding:5px 10px; border-radius:100px; line-height:1.3; font-weight:400;}
+  .casa-amenities.detail{margin-bottom:24px;}
+  .casa-amenities.detail span{font-size:13px; padding:7px 12px;}
+
   /* TARIFAS */
   .season-scroll{overflow-x:auto; border:1px solid var(--line); border-radius:var(--radius);}
   .season-table{width:100%; border-collapse:collapse; font-size:14.5px; min-width:640px;}
@@ -386,6 +392,7 @@
       <div class="detail-info">
         <p class="casa-long-desc" id="detailDesc"></p>
         <div class="casa-meta" id="detailMeta"></div>
+        <div class="casa-amenities detail" id="detailAmenities"></div>
         <div class="price-row">
           <div class="amount" id="detailPrice"></div>
         </div>
@@ -515,6 +522,24 @@ window.addEventListener("scroll", ()=>{
   document.getElementById("nav").classList.toggle("scrolled", window.scrollY > 60);
 });
 
+/* ---------- BONDADES (servicios de cada casa) ---------- */
+const DEFAULT_AMENITIES = [
+  "🌿 Jardín privado con parrillero y mobiliario exterior",
+  "🚿 Ducha al aire libre con agua fría y caliente",
+  "❄️ Aire acondicionado",
+  "📺 Smart TV con streaming",
+  "📶 Wi-Fi",
+  "🚗 Estacionamiento privado",
+  "🔒 Predio cerrado",
+  "🛌 Ropa de cama incluida",
+  "🏖️ Servicio de playa en verano: sillas y sombrilla",
+  "🔌 Estación de carga gratuita para vehículos eléctricos",
+  "🧖 Importante: traer toallas personales"
+];
+function amenitiesOf(c){ return Array.isArray(c.amenities) ? c.amenities : DEFAULT_AMENITIES; }
+function escHtml(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function amenitiesHtml(c){ return amenitiesOf(c).map(a=>`<span>${escHtml(a)}</span>`).join(""); }
+
 /* ---------- PRECIO DESDE TEMPORADAS ---------- */
 function priceLine(){
   const s = (CONFIG.seasons || []).filter(x => Number(x.usd) > 0);
@@ -538,6 +563,7 @@ function renderLineup(){
       <div class="casa-body">
         <h3>${c.name}</h3>
         <div class="casa-meta"><span>🛏 ${c.bedrooms}</span><span>🛁 ${c.bathrooms}</span><span>👤 ${c.capacity}</span></div>
+        <div class="casa-amenities">${amenitiesHtml(c)}</div>
         <p class="casa-desc">${c.desc}</p>
         <div class="casa-price">${priceLine()}</div>
         <div class="casa-actions">
@@ -566,6 +592,7 @@ function openDetail(id){
   document.getElementById("detailTitle").textContent = c.name;
   document.getElementById("detailDesc").textContent = c.desc;
   document.getElementById("detailMeta").innerHTML = `<span>🛏 ${c.bedrooms}</span><span>🛁 ${c.bathrooms}</span><span>👤 ${c.capacity}</span><span>📍 ${c.tag}</span>`;
+  document.getElementById("detailAmenities").innerHTML = amenitiesHtml(c);
   document.getElementById("detailPrice").innerHTML = priceLine();
   document.getElementById("detailMin").innerHTML = `Estadía mínima de ${(CONFIG.business.minNights || 2)} noches todo el año; en verano puede ser mayor. Fuera de temporada, consultá disponibilidad y tarifa. <a href="#tarifas">Ver tarifas</a>`;
   document.getElementById("detailWhatsapp").href = waLink('Hola! Quiero reservar la '+c.name+' en Casitas Atlántida.');
@@ -840,6 +867,11 @@ function renderAdminTabBody(){
           <div class="hint">Pegá el link de esta casita en Airbnb. Si lo dejás vacío, el botón no se muestra.</div>
         </div>
         <div class="field">
+          <label>Bondades y servicios (uno por línea)</label>
+          <textarea data-field="amenities" data-id="${c.id}" style="min-height:150px;">${amenitiesOf(c).map(escHtml).join("\n")}</textarea>
+          <div class="hint">Se muestran como ítems en la tarjeta y en el detalle de la casita. Podés empezar cada línea con un emoji.</div>
+        </div>
+        <div class="field">
           <label>Descripción</label>
           <textarea data-field="desc" data-id="${c.id}">${c.desc}</textarea>
         </div>
@@ -853,6 +885,8 @@ function renderAdminTabBody(){
         const c = CONFIG.casitas.find(x=>x.id===id);
         if(field === "gallery"){
           c.gallery = input.value.split("\n").map(s=>s.trim()).filter(Boolean);
+        } else if(field === "amenities"){
+          c.amenities = input.value.split("\n").map(s=>s.trim()).filter(Boolean);
         } else {
           c[field] = input.value;
         }
