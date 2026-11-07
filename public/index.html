@@ -231,6 +231,23 @@
   .footer-col a:hover{color:#fff;}
   .footer-bottom{border-top:1px solid #2a3236; padding-top:24px; font-size:12.5px; color:#7a8085; display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;}
 
+  /* TARIFAS */
+  .season-scroll{overflow-x:auto; border:1px solid var(--line); border-radius:var(--radius);}
+  .season-table{width:100%; border-collapse:collapse; font-size:14.5px; min-width:640px;}
+  .season-table th{text-align:left; font-weight:500; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:#777; padding:14px 18px; border-bottom:1px solid var(--line); background:var(--mist);}
+  .season-table td{padding:14px 18px; border-bottom:1px solid var(--line); font-weight:300;}
+  .season-table tr:last-child td{border-bottom:none;}
+  .season-table td:first-child{font-weight:500;}
+  .season-table tr.now td{background:#eef4f5;}
+  .season-note{margin-top:16px; font-size:13.5px; color:#666;}
+  .min-note{font-size:13px; color:#666; margin:-8px 0 20px; line-height:1.5;}
+  .min-note a{color:var(--ocean); text-decoration:underline;}
+  .inline-pair{display:flex; gap:8px;}
+  .inline-pair input{width:80px !important;}
+  .sync-status{font-size:12px; margin-top:5px; color:#777;}
+  .sync-status.ok{color:var(--ok);}
+  .sync-status.bad{color:var(--danger);}
+
   /* ADMIN */
   #adminFab{
     position:fixed; bottom:26px; right:26px; z-index:300;
@@ -298,6 +315,7 @@
   <a href="#top" class="brand">Casitas Atlántida</a>
   <div class="links">
     <a href="#casitas">Casitas</a>
+    <a href="#tarifas">Tarifas</a>
     <a href="#pagos">Medios de pago</a>
     <a href="#contacto">Contacto</a>
   </div>
@@ -371,6 +389,7 @@
         <div class="price-row">
           <div class="amount" id="detailPrice"></div>
         </div>
+        <p class="min-note" id="detailMin"></p>
         <a href="#" id="detailWhatsapp" class="btn btn-whatsapp">Reservar por WhatsApp</a>
         <a href="#" id="detailAirbnb" class="btn btn-ghost" style="display:none;width:100%;padding:16px;margin-top:10px;" target="_blank" rel="noopener">Ver más fotos e información en Airbnb</a>
       </div>
@@ -378,7 +397,19 @@
   </div>
 </section>
 
-<section class="section" id="pagos">
+<section class="section" id="tarifas">
+  <div class="container">
+    <div class="section-head">
+      <div class="section-eyebrow">Tarifas</div>
+      <h2>Temporada de verano</h2>
+      <p>Precio por noche en reserva directa. En temporada alta rige una estadía mínima mayor.</p>
+    </div>
+    <div id="seasonTable"></div>
+    <p class="season-note" id="seasonNote"></p>
+  </div>
+</section>
+
+<section class="section section-mist" id="pagos">
   <div class="container">
     <div class="section-head">
       <div class="section-eyebrow">Cómo pagar</div>
@@ -405,6 +436,7 @@
         <div class="footer-col">
           <h5>Sitio</h5>
           <a href="#casitas">Casitas</a>
+          <a href="#tarifas">Tarifas</a>
           <a href="#pagos">Medios de pago</a>
         </div>
       </div>
@@ -526,6 +558,7 @@ function openDetail(id){
   document.getElementById("detailDesc").textContent = c.desc;
   document.getElementById("detailMeta").innerHTML = `<span>🛏 ${c.bedrooms}</span><span>🛁 ${c.bathrooms}</span><span>👤 ${c.capacity}</span><span>📍 ${c.tag}</span>`;
   document.getElementById("detailPrice").innerHTML = `${c.price} <small>${c.priceUnit}</small>`;
+  document.getElementById("detailMin").innerHTML = `Estadía mínima de ${(CONFIG.business.minNights || 2)} noches todo el año; en temporada puede ser mayor. <a href="#tarifas">Ver tarifas</a>`;
   document.getElementById("detailWhatsapp").href = waLink('Hola! Quiero reservar la '+c.name+' en Casitas Atlántida.');
 
   const ab = document.getElementById("detailAirbnb");
@@ -597,6 +630,7 @@ function renderCalendar(){
   if(startOffset < 0) startOffset = 6;
   const daysInMonth = new Date(y, m+1, 0).getDate();
   const busySet = new Set((CONFIG.availability[id] || []));
+  const extSet = new Set(((CONFIG.externalBusy || {})[id]) || []);
   const todayKey = dateKey(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
 
   for(let i=0;i<startOffset;i++){
@@ -606,11 +640,12 @@ function renderCalendar(){
     const key = dateKey(y,m,d);
     const el = document.createElement("div");
     const isPast = key < todayKey;
-    el.className = "cal-day" + (isPast ? " past" : "") + (busySet.has(key) ? " busy" : "");
+    el.className = "cal-day" + (isPast ? " past" : "") + ((busySet.has(key) || extSet.has(key)) ? " busy" : "") + (extSet.has(key) ? " ext" : "");
     el.textContent = d;
     if(state.adminUnlocked){
       el.classList.add("editable");
       el.addEventListener("click", async ()=>{
+        if(extSet.has(key) && !busySet.has(key)){ showToast("Reservada en Airbnb: se libera desde Airbnb", true); return; }
         if(busySet.has(key)){ busySet.delete(key); } else { busySet.add(key); }
         CONFIG.availability[id] = Array.from(busySet);
         renderCalendar();
@@ -641,6 +676,25 @@ function renderPayments(){
   });
 }
 
+/* ---------- RENDER: TARIFAS ---------- */
+const MES_ABR = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+function fmtNum(n){ return String(Math.round(Number(n)||0)).replace(/\B(?=(\d{3})+(?!\d))/g, "."); }
+function fmtMD(md){ const [m,d] = md.split("-").map(Number); return d + " " + MES_ABR[m-1]; }
+function inSeason(s, date){
+  const md = pad(date.getMonth()+1) + "-" + pad(date.getDate());
+  return s.from <= s.to ? (md >= s.from && md <= s.to) : (md >= s.from || md <= s.to);
+}
+function renderSeasons(){
+  const wrap = document.getElementById("seasonTable");
+  const seasons = CONFIG.seasons || [];
+  const today = new Date();
+  wrap.innerHTML = `<div class="season-scroll"><table class="season-table">
+    <thead><tr><th>Temporada</th><th>Fechas</th><th>Noches mínimas</th><th>USD / noche</th><th>UYU / noche</th></tr></thead>
+    <tbody>${seasons.map(s=>`<tr class="${inSeason(s,today) ? "now" : ""}"><td>${s.label}</td><td>${fmtMD(s.from)} – ${fmtMD(s.to)}</td><td>${s.minNights}</td><td>USD ${fmtNum(s.usd)}</td><td>$ ${fmtNum(s.uyu)}</td></tr>`).join("")}</tbody>
+  </table></div>`;
+  document.getElementById("seasonNote").textContent = "Fuera de estas fechas, la estadía mínima es de " + (CONFIG.business.minNights || 2) + " noches.";
+}
+
 /* ---------- RENDER: GLOBAL ---------- */
 function renderGlobal(){
   const link = waLink("Hola! Quiero consultar por disponibilidad en Casitas Atlántida.");
@@ -656,6 +710,7 @@ function renderAll(){
   renderGlobal();
   renderLineup();
   renderPayments();
+  renderSeasons();
   if(state.openCasitaId){
     openDetail(state.openCasitaId);
   }
@@ -695,6 +750,8 @@ function renderAdmin(){
     <div class="admin-tabs" id="adminTabs">
       <button data-tab="casitas">Casitas</button>
       <button data-tab="pagos">Medios de pago</button>
+      <button data-tab="temporadas">Temporadas</button>
+      <button data-tab="calendarios">Calendarios</button>
       <button data-tab="negocio">Datos del negocio</button>
       <button data-tab="backup">Copia de seguridad</button>
     </div>
@@ -747,7 +804,7 @@ function renderAdminTabBody(){
           <div class="thumb-row">${c.gallery.map(g=>`<img src="${g}" alt="">`).join("")}</div>
           <input type="file" accept="image/*" multiple data-upload-gallery="${c.id}">
           <div class="hint">Podés seleccionar varias fotos a la vez. Se agregan a la galería existente.</div>
-          <textarea data-field="gallery" data-id="${c.id}" style="margin-top:8px;">${c.gallery.join("\\n")}</textarea>
+          <textarea data-field="gallery" data-id="${c.id}" style="margin-top:8px;">${c.gallery.join("\n")}</textarea>
           <div class="hint">También podés editar la lista de links a mano (una URL por línea) para reordenar o quitar fotos.</div>
         </div>
 
@@ -793,7 +850,7 @@ function renderAdminTabBody(){
         const field = input.dataset.field;
         const c = CONFIG.casitas.find(x=>x.id===id);
         if(field === "gallery"){
-          c.gallery = input.value.split("\\n").map(s=>s.trim()).filter(Boolean);
+          c.gallery = input.value.split("\n").map(s=>s.trim()).filter(Boolean);
         } else {
           c[field] = input.value;
         }
@@ -868,6 +925,64 @@ function renderAdminTabBody(){
     });
   }
 
+  if(state.adminTab === "temporadas"){
+    const seasons = CONFIG.seasons || (CONFIG.seasons = []);
+    const mp = md => { const [m,d] = md.split("-").map(Number); return {m,d}; };
+    const monthOpts = sel => MESES.map((n,i)=>`<option value="${i+1}" ${i+1===sel ? "selected" : ""}>${n}</option>`).join("");
+    body.innerHTML = `<p class="sub">Tarifas y estadía mínima por temporada. Se muestran en la sección Tarifas del sitio.</p>
+      <div class="field"><label>Estadía mínima general (noches)</label><input type="number" min="1" id="minNightsDefault" value="${CONFIG.business.minNights || 2}"><div class="hint">Rige todo el año salvo en las temporadas de abajo.</div></div>` +
+      seasons.map((s,i)=>{
+        const f = mp(s.from), t = mp(s.to);
+        return `<div class="pay-edit-row" data-row="${i}">
+          <button class="remove-pay" data-season-remove="${i}">Quitar ✕</button>
+          <div class="field"><label>Nombre</label><input type="text" data-s="label" value="${s.label}"></div>
+          <div class="field"><label>Desde</label><div class="inline-pair"><input type="number" min="1" max="31" data-s="fromD" value="${f.d}"><select data-s="fromM">${monthOpts(f.m)}</select></div></div>
+          <div class="field"><label>Hasta</label><div class="inline-pair"><input type="number" min="1" max="31" data-s="toD" value="${t.d}"><select data-s="toM">${monthOpts(t.m)}</select></div></div>
+          <div class="field"><label>Noches mínimas</label><input type="number" min="1" data-s="minNights" value="${s.minNights}"></div>
+          <div class="field"><label>Precio por noche (USD)</label><input type="number" min="0" data-s="usd" value="${s.usd}"></div>
+          <div class="field"><label>Precio por noche (pesos UYU)</label><input type="number" min="0" data-s="uyu" value="${s.uyu}"></div>
+        </div>`;
+      }).join("") + `<button class="btn btn-ghost" id="addSeason" style="width:100%;padding:12px;">+ Agregar temporada</button>`;
+
+    document.getElementById("minNightsDefault").addEventListener("change", async e=>{
+      CONFIG.business.minNights = Math.max(1, parseInt(e.target.value) || 2);
+      renderAll(); await saveConfig();
+    });
+    body.querySelectorAll("[data-row]").forEach(row=>{
+      const i = parseInt(row.dataset.row);
+      row.querySelectorAll("[data-s]").forEach(input=>{
+        input.addEventListener("change", async ()=>{
+          const s = CONFIG.seasons[i];
+          const q = k => row.querySelector(`[data-s="${k}"]`).value;
+          s.label = q("label");
+          s.from = pad(parseInt(q("fromM"))) + "-" + pad(Math.min(31, Math.max(1, parseInt(q("fromD")) || 1)));
+          s.to = pad(parseInt(q("toM"))) + "-" + pad(Math.min(31, Math.max(1, parseInt(q("toD")) || 1)));
+          s.minNights = Math.max(1, parseInt(q("minNights")) || 1);
+          s.usd = Number(q("usd")) || 0;
+          s.uyu = Number(q("uyu")) || 0;
+          renderSeasons();
+          await saveConfig();
+        });
+      });
+    });
+    body.querySelectorAll("[data-season-remove]").forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        CONFIG.seasons.splice(parseInt(btn.dataset.seasonRemove), 1);
+        renderSeasons(); renderAdminTabBody();
+        await saveConfig();
+      });
+    });
+    document.getElementById("addSeason").addEventListener("click", async ()=>{
+      CONFIG.seasons.push({label:"Nueva temporada", from:"01-01", to:"01-31", minNights:2, usd:100, uyu:4200});
+      renderSeasons(); renderAdminTabBody();
+      await saveConfig();
+    });
+  }
+
+  if(state.adminTab === "calendarios"){
+    renderCalTab(body);
+  }
+
   if(state.adminTab === "negocio"){
     body.innerHTML = `
       <div class="field"><label>Nombre del negocio</label><input type="text" id="bizName" value="${CONFIG.business.name}"></div>
@@ -887,7 +1002,7 @@ function renderAdminTabBody(){
     `;
     document.getElementById("saveBiz").addEventListener("click", async ()=>{
       CONFIG.business.name = document.getElementById("bizName").value;
-      CONFIG.business.whatsappNumber = document.getElementById("bizWhatsapp").value.replace(/\\D/g,"");
+      CONFIG.business.whatsappNumber = document.getElementById("bizWhatsapp").value.replace(/\D/g,"");
       CONFIG.business.location = document.getElementById("bizLocation").value;
       renderGlobal();
       await saveConfig();
@@ -922,6 +1037,58 @@ function renderAdminTabBody(){
       a.click();
     });
   }
+}
+
+async function renderCalTab(body){
+  body.innerHTML = '<p class="sub">Cargando…</p>';
+  let data;
+  try{
+    const r = await fetch(API + "/api/admin/ical", { headers: authHeader() });
+    if(!r.ok) throw new Error();
+    data = await r.json();
+  }catch(e){
+    body.innerHTML = '<p class="sub">No se pudo cargar. Cerrá el panel y volvé a iniciar sesión.</p>';
+    return;
+  }
+  const statusText = st => {
+    if(!st || !st.configured) return '<div class="sync-status">Sin enlace cargado</div>';
+    if(st.ok) return `<div class="sync-status ok">Sincronizado ${st.lastSync ? new Date(st.lastSync).toLocaleString("es-UY") : ""} · ${st.count} noches ocupadas en Airbnb</div>`;
+    return `<div class="sync-status bad">No se pudo sincronizar${st.error ? ": " + st.error : ""}</div>`;
+  };
+  body.innerHTML = `
+    <p class="sub">Pegá el enlace de calendario (iCal) de cada anuncio de Airbnb. El sitio lo revisa cada 15 minutos y marca esas fechas como reservadas. Estos enlaces son privados: solo los ves vos.</p>
+    ${CONFIG.casitas.map(c=>`
+      <div class="field">
+        <label>${c.name}</label>
+        <input type="text" data-ical="${c.id}" value="${data.urls[c.id] || ""}" placeholder="https://www.airbnb.com/calendar/ical/...">
+        ${statusText(data.status[c.id])}
+      </div>`).join("")}
+    <button class="btn btn-dark" id="saveIcal" style="width:100%;padding:12px;">Guardar y sincronizar</button>
+
+    <div class="admin-section">
+      <h3>De tu web a Airbnb</h3>
+      <p class="sub">Para que las reservas que marcás en este sitio (por ejemplo las de WhatsApp) bloqueen esas fechas en Airbnb, pegá cada enlace en el anuncio correspondiente, en Airbnb → Calendario → Disponibilidad → Sincronizar calendarios → Importar calendario.</p>
+      ${CONFIG.casitas.map(c=>`
+        <div class="field">
+          <label>${c.name}</label>
+          <input type="text" readonly onclick="this.select()" value="${location.origin}/calendar/${c.id}.ics?t=${data.exportToken}">
+        </div>`).join("")}
+    </div>`;
+
+  document.getElementById("saveIcal").addEventListener("click", async ()=>{
+    const urls = {};
+    body.querySelectorAll("[data-ical]").forEach(i=>{ urls[i.dataset.ical] = i.value.trim(); });
+    showToast("Sincronizando…");
+    const r = await fetch(API + "/api/admin/ical", {
+      method:"POST", headers:{ "Content-Type":"application/json", ...authHeader() }, body: JSON.stringify({ urls })
+    });
+    const res = await r.json().catch(()=>({}));
+    if(!r.ok){ showToast(res.error || "No se pudo guardar", true); return; }
+    CONFIG = await fetchConfig();
+    renderAll();
+    showToast("Calendarios guardados");
+    renderCalTab(body);
+  });
 }
 
 /* ---------- INIT ---------- */

@@ -1,22 +1,20 @@
 /**
  * Backend chico para Casitas Atlántida.
- * - Guarda toda la configuración del sitio (casitas, fotos, disponibilidad,
- *   medios de pago) en data/config.json, en el servidor.
- * - Permite subir fotos reales (no solo pegar links) y las guarda en
- *   public/uploads.
- * - Protege la edición con una contraseña simple (la misma que usás para
- *   entrar al panel del propietario en el sitio).
  *
- * Esto es intencionalmente simple: sin base de datos, sin usuarios múltiples.
- * Para un negocio de 4 casitas administrado por una persona, es más que
- * suficiente. Si el negocio crece y necesitás varios usuarios con permisos
- * distintos, se puede migrar a una base de datos más adelante.
+ * - Guarda la configuración del sitio (casitas, fotos, disponibilidad, medios
+ *   de pago, temporadas) en un archivo JSON dentro de DATA_DIR.
+ * - Permite subir fotos reales.
+ * - Sincroniza los calendarios de Airbnb (iCal) y publica un calendario propio
+ *   para que Airbnb bloquee las fechas que marcás en el panel.
+ * - Todo lo privado (contraseña, enlaces de calendario, token) vive en
+ *   DATA_DIR, que NO forma parte del código ni se sube a GitHub.
  */
 
 const express = require("express");
 const multer = require("multer");
 const cors = require("cors");
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 const crypto = require("crypto");
 
@@ -26,16 +24,13 @@ const PORT = process.env.PORT || 3000;
 const SEED_FILE = path.join(__dirname, "data", "config.json");
 const PUBLIC_DIR = path.join(__dirname, "public");
 
-// Si existe la variable DATA_DIR (ej: /var/data en Render con disco persistente),
-// la configuración y las fotos se guardan ahí y sobreviven a reinicios y
-// actualizaciones. Sin DATA_DIR, todo funciona como antes (modo local).
-const DATA_DIR = process.env.DATA_DIR || null;
-const DATA_FILE = DATA_DIR ? path.join(DATA_DIR, "config.json") : SEED_FILE;
-const UPLOAD_DIR = DATA_DIR ? path.join(DATA_DIR, "uploads") : path.join(PUBLIC_DIR, "uploads");
+// En Render: DATA_DIR=/var/data (disco persistente).
+// En tu computadora: una carpeta oculta en tu usuario, fuera del proyecto.
+const DATA_DIR = process.env.DATA_DIR || path.join(os.homedir(), ".casitas-atlantida");
+const DATA_FILE = path.join(DATA_DIR, "config.json");
+const UPLOAD_DIR = path.join(DATA_DIR, "uploads");
 
-if (DATA_DIR && !fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-// Primera vez con disco nuevo: copiar la configuración inicial
+fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 if (!fs.existsSync(DATA_FILE)) fs.copyFileSync(SEED_FILE, DATA_FILE);
 
 app.use(cors());
@@ -43,7 +38,7 @@ app.use(express.json({ limit: "2mb" }));
 app.use("/uploads", express.static(UPLOAD_DIR));
 app.use(express.static(PUBLIC_DIR));
 
-/* ---------- helpers de almacenamiento ---------- */
+/* ---------- configuración en disco ---------- */
 function readConfig() {
   return JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
 }
@@ -51,57 +46,200 @@ function writeConfig(cfg) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(cfg, null, 2), "utf-8");
 }
 
-/* ---------- autenticación simple ----------
-   El panel de administración envía la contraseña en el header
-   'x-admin-password' en cada pedido que modifica datos. */
+const DEFAULT_SEASONS = [
+  { label: "Diciembre", from: "12-01", to: "12-21", minNights: 3, usd: 110, uyu: 4620 },
+  { label: "Fin de año", from: "12-22", to: "12-31", minNights: 5, usd: 160, uyu: 6720 },
+  { label: "Año Nuevo", from: "01-01", to: "01-06", minNights: 5, usd: 195, uyu: 8190 },
+  { label: "Enero", from: "01-07", to: "01-15", minNights: 3, usd: 180, uyu: 7560 },
+  { label: "Enero", from: "01-16", to: "01-22", minNights: 3, usd: 145, uyu: 6090 },
+  { label: "Enero", from: "01-23", to: "01-31", minNights: 3, usd: 120, uyu: 5040 },
+  { label: "Febrero", from: "02-01", to: "02-04", minNights: 3, usd: 125, uyu: 5250 },
+  { label: "Carnaval", from: "02-05", to: "02-10", minNights: 3, usd: 150, uyu: 6300 },
+  { label: "Febrero", from: "02-11", to: "02-21", minNights: 3, usd: 125, uyu: 5250 },
+  { label: "Febrero", from: "02-22", to: "02-28", minNights: 2, usd: 100, uyu: 4200 },
+  { label: "Marzo", from: "03-01", to: "03-21", minNights: 2, usd: 85, uyu: 3570 },
+  { label: "Semana de Turismo", from: "03-22", to: "03-28", minNights: 3, usd: 105, uyu: 4410 },
+  { label: "Marzo", from: "03-29", to: "03-31", minNights: 2, usd: 80, uyu: 3360 },
+];
+
+// Completa lo que falte en una configuración ya existente (por ejemplo, la
+// que quedó guardada en el disco antes de agregar temporadas o sincronización).
+function migrate() {
+  const cfg = readConfig();
+  let changed = false;
+  cfg.business = cfg.business || {};
+  if (!cfg.seasons) { cfg.seasons = DEFAULT_SEASONS; changed = true; }
+  if (!cfg.business.minNights) { cfg.business.minNights = 2; changed = true; }
+  if (!cfg.sync) { cfg.sync = {}; changed = true; }
+  if (!cfg.sync.icalUrls) { cfg.sync.icalUrls = {}; changed = true; }
+  if (!cfg.sync.exportToken) { cfg.sync.exportToken = crypto.randomBytes(16).toString("hex"); changed = true; }
+  if (!cfg.availability) { cfg.availability = {}; changed = true; }
+  if (changed) writeConfig(cfg);
+}
+migrate();
+
+/* ---------- autenticación simple ---------- */
+function safeEqual(a, b) {
+  const A = Buffer.from(String(a)), B = Buffer.from(String(b));
+  return A.length === B.length && crypto.timingSafeEqual(A, B);
+}
 function checkAuth(req, res, next) {
   const cfg = readConfig();
   const provided = req.header("x-admin-password");
-  if (provided && provided === cfg.business.adminPassword) return next();
+  if (provided && safeEqual(provided, cfg.business.adminPassword)) return next();
   return res.status(401).json({ error: "No autorizado" });
 }
 
-/* ---------- rutas públicas ---------- */
+/* ---------- sincronización con Airbnb (iCal) ---------- */
+const external = {}; // id de casita -> { dates, lastSync, ok, error }
 
-// Devuelve la configuración del sitio (sin exponer la contraseña de admin)
+function ymdToDate(s) {
+  return new Date(Date.UTC(+s.slice(0, 4), +s.slice(4, 6) - 1, +s.slice(6, 8)));
+}
+
+// Devuelve la lista de noches ocupadas (YYYY-MM-DD). La fecha de salida
+// (DTEND) no cuenta: ese día queda libre para un nuevo ingreso.
+function parseIcs(text) {
+  const lines = text.replace(/\r?\n[ \t]/g, "").split(/\r?\n/);
+  const dates = new Set();
+  let ev = null;
+  for (const line of lines) {
+    if (line === "BEGIN:VEVENT") ev = {};
+    else if (line === "END:VEVENT") {
+      if (ev && ev.start) {
+        const s = ymdToDate(ev.start);
+        const e = ev.end ? ymdToDate(ev.end) : new Date(s.getTime() + 86400000);
+        let guard = 0;
+        for (let d = new Date(s); d < e && guard < 800; d = new Date(d.getTime() + 86400000), guard++) {
+          dates.add(d.toISOString().slice(0, 10));
+        }
+      }
+      ev = null;
+    } else if (ev) {
+      const m = line.match(/^(DTSTART|DTEND)[^:]*:(\d{8})/);
+      if (m) { if (m[1] === "DTSTART") ev.start = m[2]; else ev.end = m[2]; }
+    }
+  }
+  return Array.from(dates).sort();
+}
+
+function validIcalUrl(u) {
+  try {
+    const x = new URL(u);
+    return x.protocol === "https:" && /(^|\.)airbnb\.[a-z.]+$/i.test(x.hostname);
+  } catch (e) { return false; }
+}
+
+async function syncOne(id, url) {
+  try {
+    if (!validIcalUrl(url)) throw new Error("Enlace no válido");
+    const r = await fetch(url, {
+      signal: AbortSignal.timeout(15000),
+      headers: { "user-agent": "Mozilla/5.0 (compatible; CasitasAtlantida/1.0)" },
+    });
+    if (!r.ok) throw new Error("Airbnb respondió " + r.status);
+    const text = await r.text();
+    if (!text.includes("BEGIN:VCALENDAR")) throw new Error("La respuesta no es un calendario");
+    external[id] = { dates: parseIcs(text), lastSync: new Date().toISOString(), ok: true };
+  } catch (e) {
+    const prev = external[id] || {};
+    external[id] = { dates: prev.dates || [], lastSync: prev.lastSync || null, ok: false, error: e.message };
+  }
+}
+
+let syncing = false;
+async function syncAll() {
+  if (syncing) return;
+  syncing = true;
+  try {
+    const cfg = readConfig();
+    const urls = cfg.sync.icalUrls || {};
+    for (const c of cfg.casitas) {
+      if (urls[c.id]) await syncOne(c.id, urls[c.id]);
+      else delete external[c.id];
+    }
+  } finally { syncing = false; }
+}
+
+function statusMap(cfg) {
+  const out = {};
+  for (const c of cfg.casitas) {
+    const e = external[c.id];
+    out[c.id] = {
+      configured: !!(cfg.sync.icalUrls || {})[c.id],
+      ok: e ? e.ok : null,
+      lastSync: e ? e.lastSync : null,
+      error: e ? e.error || null : null,
+      count: e ? e.dates.length : 0,
+    };
+  }
+  return out;
+}
+
+/* ---------- rutas públicas ---------- */
 app.get("/api/config", (req, res) => {
   const cfg = readConfig();
-  const publicCfg = JSON.parse(JSON.stringify(cfg));
-  delete publicCfg.business.adminPassword;
-  res.json(publicCfg);
+  const out = JSON.parse(JSON.stringify(cfg));
+  delete out.business.adminPassword;
+  delete out.sync; // enlaces privados y token: nunca salen al público
+  out.externalBusy = {};
+  for (const c of cfg.casitas) out.externalBusy[c.id] = (external[c.id] && external[c.id].dates) || [];
+  res.set("Cache-Control", "no-store");
+  res.json(out);
 });
 
-// Login del panel: solo valida la contraseña, no genera sesión server-side
 app.post("/api/admin/login", (req, res) => {
   const cfg = readConfig();
   const { password } = req.body || {};
-  if (password && password === cfg.business.adminPassword) {
-    return res.json({ ok: true });
-  }
+  if (password && safeEqual(password, cfg.business.adminPassword)) return res.json({ ok: true });
   res.status(401).json({ ok: false });
 });
 
-/* ---------- rutas protegidas (requieren contraseña) ---------- */
+// Calendario que Airbnb importa para bloquear lo que marcás en el panel.
+// Se protege con un token largo en la dirección (Airbnb no puede iniciar sesión).
+app.get("/calendar/:id.ics", (req, res) => {
+  const cfg = readConfig();
+  if (!safeEqual(String(req.query.t || ""), cfg.sync.exportToken)) return res.status(404).send("No encontrado");
+  const id = String(parseInt(req.params.id, 10));
+  const today = new Date().toISOString().slice(0, 10);
+  const dates = ((cfg.availability || {})[id] || []).filter((d) => d >= today).sort();
 
-// Guarda toda la configuración editada desde el panel.
-// La contraseña de admin nunca se pisa acá: se conserva la que ya
-// estaba guardada, para no perderla por accidente.
+  const ranges = [];
+  for (const d of dates) {
+    const last = ranges[ranges.length - 1];
+    const prevEnd = last ? new Date(ymdToDate(last.end.replace(/-/g, "")).getTime() + 86400000).toISOString().slice(0, 10) : null;
+    if (last && prevEnd === d) last.end = d;
+    else ranges.push({ start: d, end: d });
+  }
+  const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "");
+  let ics = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Casitas Atlantida//ES\r\nCALSCALE:GREGORIAN\r\n";
+  for (const r of ranges) {
+    const s = r.start.replace(/-/g, "");
+    const e = new Date(ymdToDate(r.end.replace(/-/g, "")).getTime() + 86400000).toISOString().slice(0, 10).replace(/-/g, "");
+    ics += `BEGIN:VEVENT\r\nUID:casa${id}-${s}@casitas-atlantida\r\nDTSTAMP:${stamp}\r\nDTSTART;VALUE=DATE:${s}\r\nDTEND;VALUE=DATE:${e}\r\nSUMMARY:No disponible\r\nEND:VEVENT\r\n`;
+  }
+  ics += "END:VCALENDAR\r\n";
+  res.set("Content-Type", "text/calendar; charset=utf-8");
+  res.send(ics);
+});
+
+/* ---------- rutas protegidas ---------- */
 app.put("/api/config", checkAuth, (req, res) => {
   const current = readConfig();
   const incoming = req.body || {};
+  if (!incoming.business || !Array.isArray(incoming.casitas)) {
+    return res.status(400).json({ error: "Configuración inválida" });
+  }
+  delete incoming.externalBusy; // dato calculado, no se guarda
   const merged = {
     ...incoming,
-    business: {
-      ...current.business,
-      ...incoming.business,
-      adminPassword: current.business.adminPassword,
-    },
+    business: { ...current.business, ...incoming.business, adminPassword: current.business.adminPassword },
+    sync: current.sync, // lo privado se conserva siempre
   };
   writeConfig(merged);
   res.json({ ok: true });
 });
 
-// Cambiar la contraseña del panel (endpoint separado, a propósito)
 app.post("/api/admin/change-password", checkAuth, (req, res) => {
   const { newPassword } = req.body || {};
   if (!newPassword || newPassword.length < 4) {
@@ -113,7 +251,29 @@ app.post("/api/admin/change-password", checkAuth, (req, res) => {
   res.json({ ok: true });
 });
 
-// Subida de fotos reales (no requiere link externo)
+app.get("/api/admin/ical", checkAuth, (req, res) => {
+  const cfg = readConfig();
+  res.json({ urls: cfg.sync.icalUrls || {}, status: statusMap(cfg), exportToken: cfg.sync.exportToken });
+});
+
+app.post("/api/admin/ical", checkAuth, async (req, res) => {
+  const urls = (req.body && req.body.urls) || {};
+  const cfg = readConfig();
+  const clean = {};
+  for (const c of cfg.casitas) {
+    const u = String(urls[c.id] || "").trim();
+    if (u) {
+      if (!validIcalUrl(u)) return res.status(400).json({ error: `El enlace de ${c.name} no parece ser un calendario de Airbnb` });
+      clean[c.id] = u;
+    } else delete external[c.id];
+  }
+  cfg.sync.icalUrls = clean;
+  writeConfig(cfg);
+  await syncAll();
+  res.json({ ok: true, status: statusMap(readConfig()) });
+});
+
+/* ---------- subida de fotos ---------- */
 const storage = multer.diskStorage({
   destination: UPLOAD_DIR,
   filename: (req, file, cb) => {
@@ -123,7 +283,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({
   storage,
-  limits: { fileSize: 8 * 1024 * 1024 }, // 8MB por foto
+  limits: { fileSize: 8 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (!file.mimetype.startsWith("image/")) return cb(new Error("Solo se permiten imágenes"));
     cb(null, true);
@@ -140,6 +300,12 @@ app.use((err, req, res, next) => {
   next();
 });
 
-app.listen(PORT, () => {
-  console.log(`Casitas Atlántida — backend escuchando en http://localhost:${PORT}`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Casitas Atlántida — backend escuchando en http://localhost:${PORT}`);
+    syncAll();
+    setInterval(syncAll, 15 * 60 * 1000);
+  });
+}
+
+module.exports = { app, parseIcs };
