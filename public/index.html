@@ -402,10 +402,11 @@
     <div class="section-head">
       <div class="section-eyebrow">Tarifas</div>
       <h2>Temporada de verano</h2>
-      <p>Precio por noche en reserva directa. En temporada alta rige una estadía mínima mayor.</p>
+      <p>Precio por noche en reserva directa, igual para las cuatro casitas. En temporada alta rige una estadía mínima mayor.</p>
     </div>
     <div id="seasonTable"></div>
     <p class="season-note" id="seasonNote"></p>
+    <a href="#" id="tarifasWhatsapp" class="btn btn-whatsapp" style="margin-top:22px;" target="_blank" rel="noopener">Consultar disponibilidad y tarifa</a>
   </div>
 </section>
 
@@ -514,6 +515,14 @@ window.addEventListener("scroll", ()=>{
   document.getElementById("nav").classList.toggle("scrolled", window.scrollY > 60);
 });
 
+/* ---------- PRECIO DESDE TEMPORADAS ---------- */
+function priceLine(){
+  const s = (CONFIG.seasons || []).filter(x => Number(x.usd) > 0);
+  if(!s.length) return "Consultar disponibilidad";
+  const min = Math.min(...s.map(x => Number(x.usd)));
+  return `Desde USD ${fmtNum(min)} <small>por noche en verano</small>`;
+}
+
 /* ---------- RENDER: LINEUP ---------- */
 function renderLineup(){
   const grid = document.getElementById("lineupGrid");
@@ -530,7 +539,7 @@ function renderLineup(){
         <h3>${c.name}</h3>
         <div class="casa-meta"><span>🛏 ${c.bedrooms}</span><span>🛁 ${c.bathrooms}</span><span>👤 ${c.capacity}</span></div>
         <p class="casa-desc">${c.desc}</p>
-        <div class="casa-price">${c.price} <small>${c.priceUnit}</small></div>
+        <div class="casa-price">${priceLine()}</div>
         <div class="casa-actions">
           <button class="btn btn-ghost" data-open="${c.id}">Ver casita</button>
           ${c.airbnbUrl ? `<a class="btn btn-ghost" href="${c.airbnbUrl}" target="_blank" rel="noopener">Ver en Airbnb</a>` : ""}
@@ -557,8 +566,8 @@ function openDetail(id){
   document.getElementById("detailTitle").textContent = c.name;
   document.getElementById("detailDesc").textContent = c.desc;
   document.getElementById("detailMeta").innerHTML = `<span>🛏 ${c.bedrooms}</span><span>🛁 ${c.bathrooms}</span><span>👤 ${c.capacity}</span><span>📍 ${c.tag}</span>`;
-  document.getElementById("detailPrice").innerHTML = `${c.price} <small>${c.priceUnit}</small>`;
-  document.getElementById("detailMin").innerHTML = `Estadía mínima de ${(CONFIG.business.minNights || 2)} noches todo el año; en temporada puede ser mayor. <a href="#tarifas">Ver tarifas</a>`;
+  document.getElementById("detailPrice").innerHTML = priceLine();
+  document.getElementById("detailMin").innerHTML = `Estadía mínima de ${(CONFIG.business.minNights || 2)} noches todo el año; en verano puede ser mayor. Fuera de temporada, consultá disponibilidad y tarifa. <a href="#tarifas">Ver tarifas</a>`;
   document.getElementById("detailWhatsapp").href = waLink('Hola! Quiero reservar la '+c.name+' en Casitas Atlántida.');
 
   const ab = document.getElementById("detailAirbnb");
@@ -692,7 +701,7 @@ function renderSeasons(){
     <thead><tr><th>Temporada</th><th>Fechas</th><th>Noches mínimas</th><th>USD / noche</th><th>UYU / noche</th></tr></thead>
     <tbody>${seasons.map(s=>`<tr class="${inSeason(s,today) ? "now" : ""}"><td>${s.label}</td><td>${fmtMD(s.from)} – ${fmtMD(s.to)}</td><td>${s.minNights}</td><td>USD ${fmtNum(s.usd)}</td><td>$ ${fmtNum(s.uyu)}</td></tr>`).join("")}</tbody>
   </table></div>`;
-  document.getElementById("seasonNote").textContent = "Fuera de estas fechas, la estadía mínima es de " + (CONFIG.business.minNights || 2) + " noches.";
+  document.getElementById("seasonNote").textContent = "Fuera de estas fechas, la estadía mínima es de " + (CONFIG.business.minNights || 2) + " noches. Para el resto del año, consultá disponibilidad y tarifa por WhatsApp.";
 }
 
 /* ---------- RENDER: GLOBAL ---------- */
@@ -701,6 +710,7 @@ function renderGlobal(){
   document.getElementById("heroWhatsapp").href = link;
   document.getElementById("navCta").href = link;
   document.getElementById("footerWhatsapp").href = link;
+  document.getElementById("tarifasWhatsapp").href = link;
   document.getElementById("footerLocation").textContent = CONFIG.business.location;
   document.getElementById("year").textContent = new Date().getFullYear();
   document.title = CONFIG.business.name + " — Alquiler temporal frente al mar";
@@ -832,14 +842,6 @@ function renderAdminTabBody(){
         <div class="field">
           <label>Descripción</label>
           <textarea data-field="desc" data-id="${c.id}">${c.desc}</textarea>
-        </div>
-        <div class="field">
-          <label>Precio</label>
-          <input type="text" data-field="price" data-id="${c.id}" value="${c.price}">
-        </div>
-        <div class="field">
-          <label>Unidad de precio</label>
-          <input type="text" data-field="priceUnit" data-id="${c.id}" value="${c.priceUnit}">
         </div>
       </div>
     `).join("");
