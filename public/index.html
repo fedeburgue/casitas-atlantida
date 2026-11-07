@@ -231,6 +231,44 @@
   .footer-col a:hover{color:#fff;}
   .footer-bottom{border-top:1px solid #2a3236; padding-top:24px; font-size:12.5px; color:#7a8085; display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;}
 
+  /* GALERÍA POR SECTORES */
+  .section-chips{display:none; flex-wrap:wrap; gap:8px; margin-bottom:14px;}
+  .section-chips button{font-size:13px; padding:7px 14px; border:1px solid var(--line); border-radius:100px; color:#555; background:var(--paper);}
+  .section-chips button:hover{border-color:var(--ink);}
+  .section-chips button.active{background:var(--ink); color:#fff; border-color:var(--ink);}
+  .thumbs{display:flex; gap:8px; overflow-x:auto; padding:12px 0 4px; scroll-behavior:smooth;}
+  .thumbs img{width:72px; height:54px; object-fit:cover; border-radius:3px; cursor:pointer; opacity:.55; flex:none; border:2px solid transparent; transition:opacity .2s;}
+  .thumbs img:hover{opacity:.85;}
+  .thumbs img.active{opacity:1; border-color:var(--ocean);}
+  .no-photos{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#888; font-size:14px;}
+
+  /* MÚSICA */
+  #musicBtn{
+    position:fixed; bottom:26px; left:26px; z-index:300; display:none; align-items:center; gap:8px;
+    background:rgba(20,24,28,.88); color:#fff; border-radius:100px; padding:12px 18px; font-size:13px;
+    letter-spacing:.02em; box-shadow:0 8px 24px rgba(0,0,0,.25); backdrop-filter:blur(6px); transition:background .2s;
+  }
+  #musicBtn:hover{background:var(--ocean);}
+
+  /* ADMIN: FOTOS */
+  .casa-picker{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:20px;}
+  .casa-picker button{padding:8px 14px; font-size:12.5px; border:1px solid var(--line); border-radius:100px; color:#555;}
+  .casa-picker button.active{background:var(--ocean); color:#fff; border-color:var(--ocean);}
+  .sec-head{display:flex; gap:8px; margin-bottom:12px; align-items:center;}
+  .sec-head input{flex:1; padding:9px 12px; border:1px solid var(--line); border-radius:3px; font-size:14px; font-weight:600; font-family:inherit;}
+  .remove-sec{font-size:12px; color:var(--danger); white-space:nowrap;}
+  .photo-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px;}
+  .photo-tile{position:relative; aspect-ratio:4/3; border-radius:4px; overflow:hidden; background:var(--mist);}
+  .photo-tile img{width:100%; height:100%; object-fit:cover;}
+  .tile-actions{position:absolute; left:0; right:0; bottom:0; display:flex; justify-content:space-between; padding:4px; background:linear-gradient(transparent, rgba(0,0,0,.7));}
+  .tile-actions button{color:#fff; font-size:12px; width:26px; height:26px; border-radius:50%; background:rgba(255,255,255,.2);}
+  .tile-actions button:hover{background:rgba(255,255,255,.4);}
+  .tile-actions button.on{background:var(--sand); color:#000;}
+  .upload-btn{width:100%; padding:11px; font-size:13px; cursor:pointer;}
+  .inline-add{display:flex; gap:8px;}
+  .inline-add input{flex:1; padding:10px 12px; border:1px solid var(--line); border-radius:3px; font-size:13.5px; font-family:inherit;}
+  .inline-add .btn{padding:10px 18px; font-size:13px;}
+
   /* BONDADES */
   .casa-amenities{display:flex; flex-wrap:wrap; gap:6px;}
   .casa-amenities span{font-size:12px; color:#555; background:var(--mist); padding:5px 10px; border-radius:100px; line-height:1.3; font-weight:400;}
@@ -364,6 +402,7 @@
     </div>
     <div class="detail-grid">
       <div>
+        <div class="section-chips" id="sectionChips"></div>
         <div class="carousel" id="carousel">
           <div class="carousel-track" id="carouselTrack"></div>
           <div class="carousel-nav">
@@ -371,7 +410,7 @@
             <button id="carNext" aria-label="Foto siguiente">›</button>
           </div>
         </div>
-        <div class="carousel-dots" id="carouselDots"></div>
+        <div class="thumbs" id="carouselDots"></div>
 
         <div class="calendar-block">
           <div class="calendar-head">
@@ -456,6 +495,9 @@
   </div>
 </footer>
 
+<audio id="bgm" loop preload="none"></audio>
+<button id="musicBtn" aria-label="Música de fondo">♪ Música</button>
+
 <button id="adminFab" title="Panel del propietario">⚙</button>
 
 <div id="adminOverlay">
@@ -476,7 +518,8 @@
    ========================================================= */
 const API = ""; // mismo origen (el backend sirve este archivo)
 let CONFIG = null;
-let state = { openCasitaId:null, carouselIndex:0, calYear:null, calMonth:null, adminUnlocked:false, adminTab:"casitas" };
+let state = { openCasitaId:null, carouselIndex:0, sectionFilter:-1, calYear:null, calMonth:null, adminUnlocked:false, adminTab:"casitas", adminCasa:null };
+const DEFAULT_HERO = "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&w=2000&q=80";
 
 function authHeader(){
   return { "x-admin-password": sessionStorage.getItem("adminAuth") || "" };
@@ -508,11 +551,42 @@ async function saveConfig(){
   showToast("Cambios guardados");
   return true;
 }
-async function uploadPhoto(file){
+// Achica las fotos del celular/cámara antes de subirlas (el sitio carga más rápido
+// y el disco rinde más). Si el navegador no puede, se sube el archivo original.
+async function prepareImage(file, maxDim){
+  try{
+    if(!/^image\/(jpeg|png|webp)$/.test(file.type)) return file;
+    const bmp = await createImageBitmap(file);
+    const scale = Math.min(1, maxDim / Math.max(bmp.width, bmp.height));
+    if(scale === 1 && file.size < 1.5*1024*1024){ if(bmp.close) bmp.close(); return file; }
+    const cv = document.createElement("canvas");
+    cv.width = Math.round(bmp.width * scale); cv.height = Math.round(bmp.height * scale);
+    cv.getContext("2d").drawImage(bmp, 0, 0, cv.width, cv.height);
+    if(bmp.close) bmp.close();
+    const blob = await new Promise(r=>cv.toBlob(r, "image/jpeg", 0.85));
+    return blob ? new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", {type:"image/jpeg"}) : file;
+  }catch(e){ return file; }
+}
+async function uploadPhoto(file, maxDim){
+  const ready = await prepareImage(file, maxDim || 1920);
   const form = new FormData();
-  form.append("photo", file);
+  form.append("photo", ready);
   const res = await fetch(API + "/api/upload", { method:"POST", headers: authHeader(), body: form });
-  if(!res.ok){ showToast("No se pudo subir la foto", true); return null; }
+  if(!res.ok){
+    const err = await res.json().catch(()=>({}));
+    showToast(err.error || "No se pudo subir la foto", true); return null;
+  }
+  const data = await res.json();
+  return data.url;
+}
+async function uploadAudio(file){
+  const form = new FormData();
+  form.append("audio", file);
+  const res = await fetch(API + "/api/upload-audio", { method:"POST", headers: authHeader(), body: form });
+  if(!res.ok){
+    const err = await res.json().catch(()=>({}));
+    showToast(err.error || "No se pudo subir el audio", true); return null;
+  }
   const data = await res.json();
   return data.url;
 }
@@ -558,7 +632,7 @@ function renderLineup(){
     card.innerHTML = `
       <div class="casa-photo">
         <span class="casa-tag">${c.tag}</span>
-        <img src="${c.mainPhoto}" alt="${c.name}">
+        <img src="${mainPhotoOf(c)}" alt="${c.name}">
       </div>
       <div class="casa-body">
         <h3>${c.name}</h3>
@@ -580,11 +654,12 @@ function renderLineup(){
 }
 
 /* ---------- RENDER: DETAIL ---------- */
-function openDetail(id){
+function openDetail(id, noScroll){
   const c = CONFIG.casitas.find(x=>x.id===id);
   if(!c) return;
   state.openCasitaId = id;
   state.carouselIndex = 0;
+  state.sectionFilter = -1;
   const today = new Date();
   state.calYear = today.getFullYear();
   state.calMonth = today.getMonth();
@@ -606,39 +681,83 @@ function openDetail(id){
 
   const panel = document.getElementById("detailPanel");
   panel.classList.add("open");
-  panel.scrollIntoView({behavior:"smooth", block:"start"});
+  if(!noScroll) panel.scrollIntoView({behavior:"smooth", block:"start"});
 }
 document.getElementById("closeDetail").addEventListener("click", ()=>{
   document.getElementById("detailPanel").classList.remove("open");
   document.getElementById("casitas").scrollIntoView({behavior:"smooth"});
 });
 
+function sectionsOf(c){
+  if(Array.isArray(c.sections)) return c.sections;
+  return [{ name:"Fotos", photos: c.gallery || [] }];
+}
+function mainPhotoOf(c){
+  return c.mainPhoto || (sectionsOf(c).flatMap(s=>s.photos)[0]) || "";
+}
+function photosFor(c){
+  const secs = sectionsOf(c);
+  if(state.sectionFilter >= 0 && secs[state.sectionFilter]) return secs[state.sectionFilter].photos;
+  return secs.flatMap(s=>s.photos);
+}
 function renderCarousel(c){
+  const secs = sectionsOf(c);
+  const photos = photosFor(c);
+  if(state.carouselIndex >= photos.length) state.carouselIndex = 0;
+
+  const chips = document.getElementById("sectionChips");
+  const nonEmpty = secs.map((s,i)=>({s,i})).filter(x=>x.s.photos.length);
+  if(nonEmpty.length > 1){
+    chips.style.display = "flex";
+    chips.innerHTML = `<button data-sec="-1" class="${state.sectionFilter===-1 ? "active" : ""}">Todas</button>` +
+      nonEmpty.map(x=>`<button data-sec="${x.i}" class="${state.sectionFilter===x.i ? "active" : ""}">${escHtml(x.s.name)}</button>`).join("");
+    chips.querySelectorAll("button").forEach(b=>b.addEventListener("click", ()=>{
+      state.sectionFilter = parseInt(b.dataset.sec); state.carouselIndex = 0; renderCarousel(c);
+    }));
+  } else { chips.style.display = "none"; chips.innerHTML = ""; }
+
   const track = document.getElementById("carouselTrack");
-  const dots = document.getElementById("carouselDots");
-  track.innerHTML = "";
-  dots.innerHTML = "";
-  c.gallery.forEach((src,i)=>{
+  const strip = document.getElementById("carouselDots");
+  const nav = document.querySelector(".carousel-nav");
+  track.innerHTML = ""; strip.innerHTML = "";
+  if(!photos.length){
+    track.innerHTML = '<div class="no-photos">Próximamente más fotos</div>';
+    nav.style.display = "none";
+    return;
+  }
+  nav.style.display = photos.length > 1 ? "flex" : "none";
+  photos.forEach((src,i)=>{
     const img = document.createElement("img");
     img.src = src; img.alt = c.name + " foto " + (i+1);
     if(i===state.carouselIndex) img.classList.add("active");
     track.appendChild(img);
-    const dot = document.createElement("span");
-    if(i===state.carouselIndex) dot.classList.add("active");
-    dot.addEventListener("click", ()=>{ state.carouselIndex=i; renderCarousel(c); });
-    dots.appendChild(dot);
+    const t = document.createElement("img");
+    t.src = src; t.alt = ""; t.loading = "lazy";
+    if(i===state.carouselIndex) t.classList.add("active");
+    t.addEventListener("click", ()=>{ state.carouselIndex = i; renderCarousel(c); });
+    strip.appendChild(t);
   });
+  const act = strip.querySelector("img.active");
+  if(act) strip.scrollLeft = act.offsetLeft - strip.clientWidth/2 + act.clientWidth/2;
 }
-document.getElementById("carPrev").addEventListener("click", ()=>{
+function stepCarousel(d){
   const c = CONFIG.casitas.find(x=>x.id===state.openCasitaId); if(!c) return;
-  state.carouselIndex = (state.carouselIndex - 1 + c.gallery.length) % c.gallery.length;
+  const n = photosFor(c).length; if(!n) return;
+  state.carouselIndex = (state.carouselIndex + d + n) % n;
   renderCarousel(c);
-});
-document.getElementById("carNext").addEventListener("click", ()=>{
-  const c = CONFIG.casitas.find(x=>x.id===state.openCasitaId); if(!c) return;
-  state.carouselIndex = (state.carouselIndex + 1) % c.gallery.length;
-  renderCarousel(c);
-});
+}
+document.getElementById("carPrev").addEventListener("click", ()=>stepCarousel(-1));
+document.getElementById("carNext").addEventListener("click", ()=>stepCarousel(1));
+(function(){
+  let x0 = null;
+  const t = document.getElementById("carouselTrack");
+  t.addEventListener("touchstart", e=>{ x0 = e.touches[0].clientX; }, {passive:true});
+  t.addEventListener("touchend", e=>{
+    if(x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0; x0 = null;
+    if(Math.abs(dx) > 40) stepCarousel(dx < 0 ? 1 : -1);
+  });
+})();
 
 /* ---------- RENDER: CALENDAR ---------- */
 const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
@@ -745,11 +864,13 @@ function renderGlobal(){
 
 function renderAll(){
   renderGlobal();
+  renderHero();
+  renderMusic();
   renderLineup();
   renderPayments();
   renderSeasons();
   if(state.openCasitaId){
-    openDetail(state.openCasitaId);
+    openDetail(state.openCasitaId, true);
   }
 }
 
@@ -786,11 +907,13 @@ function renderAdmin(){
     <p class="sub">Los cambios se guardan directamente en el servidor: se ven al instante para cualquiera que entre al sitio, no hace falta copiar ni pegar nada.</p>
     <div class="admin-tabs" id="adminTabs">
       <button data-tab="casitas">Casitas</button>
-      <button data-tab="pagos">Medios de pago</button>
+      <button data-tab="fotos">Fotos</button>
+      <button data-tab="portada">Portada y música</button>
+      <button data-tab="pagos">Pagos</button>
       <button data-tab="temporadas">Temporadas</button>
       <button data-tab="calendarios">Calendarios</button>
-      <button data-tab="negocio">Datos del negocio</button>
-      <button data-tab="backup">Copia de seguridad</button>
+      <button data-tab="negocio">Negocio</button>
+      <button data-tab="backup">Copia</button>
     </div>
     <div id="adminTabBody"></div>
   `;
@@ -820,72 +943,30 @@ function renderAdminTabBody(){
   const body = document.getElementById("adminTabBody");
 
   if(state.adminTab === "casitas"){
-    body.innerHTML = CONFIG.casitas.map(c=>`
-      <div class="admin-section">
-        <h3>${c.name}</h3>
-        <div class="field">
-          <label>Nombre</label>
-          <input type="text" data-field="name" data-id="${c.id}" value="${c.name}">
-        </div>
-
-        <div class="field">
-          <label>Foto principal</label>
-          <div class="thumb-row"><img src="${c.mainPhoto}" alt=""></div>
-          <input type="file" accept="image/*" data-upload-main="${c.id}">
-          <div class="hint">Subí una foto desde tu celular o PC. También podés pegar un link directo abajo si preferís.</div>
-          <input type="text" data-field="mainPhoto" data-id="${c.id}" value="${c.mainPhoto}" style="margin-top:8px;">
-        </div>
-
-        <div class="field">
-          <label>Galería de fotos</label>
-          <div class="thumb-row">${c.gallery.map(g=>`<img src="${g}" alt="">`).join("")}</div>
-          <input type="file" accept="image/*" multiple data-upload-gallery="${c.id}">
-          <div class="hint">Podés seleccionar varias fotos a la vez. Se agregan a la galería existente.</div>
-          <textarea data-field="gallery" data-id="${c.id}" style="margin-top:8px;">${c.gallery.join("\n")}</textarea>
-          <div class="hint">También podés editar la lista de links a mano (una URL por línea) para reordenar o quitar fotos.</div>
-        </div>
-
-        <div class="field">
-          <label>Etiqueta</label>
-          <input type="text" data-field="tag" data-id="${c.id}" value="${c.tag}">
-        </div>
-        <div class="field">
-          <label>Capacidad</label>
-          <input type="text" data-field="capacity" data-id="${c.id}" value="${c.capacity}">
-        </div>
-        <div class="field">
-          <label>Dormitorios</label>
-          <input type="text" data-field="bedrooms" data-id="${c.id}" value="${c.bedrooms}">
-        </div>
-        <div class="field">
-          <label>Baños</label>
-          <input type="text" data-field="bathrooms" data-id="${c.id}" value="${c.bathrooms}">
-        </div>
-        <div class="field">
-          <label>Link de Airbnb</label>
-          <input type="text" data-field="airbnbUrl" data-id="${c.id}" value="${c.airbnbUrl || ""}" placeholder="https://www.airbnb.com.uy/rooms/...">
-          <div class="hint">Pegá el link de esta casita en Airbnb. Si lo dejás vacío, el botón no se muestra.</div>
-        </div>
-        <div class="field">
-          <label>Bondades y servicios (uno por línea)</label>
-          <textarea data-field="amenities" data-id="${c.id}" style="min-height:150px;">${amenitiesOf(c).map(escHtml).join("\n")}</textarea>
-          <div class="hint">Se muestran como ítems en la tarjeta y en el detalle de la casita. Podés empezar cada línea con un emoji.</div>
-        </div>
-        <div class="field">
-          <label>Descripción</label>
-          <textarea data-field="desc" data-id="${c.id}">${c.desc}</textarea>
-        </div>
+    const c = adminCasa();
+    body.innerHTML = casaPickerHtml(c.id) + `
+      <div class="field"><label>Nombre</label><input type="text" data-field="name" value="${escAttr(c.name)}"></div>
+      <div class="field"><label>Etiqueta</label><input type="text" data-field="tag" value="${escAttr(c.tag)}"></div>
+      <div class="field"><label>Capacidad</label><input type="text" data-field="capacity" value="${escAttr(c.capacity)}"></div>
+      <div class="field"><label>Dormitorios</label><input type="text" data-field="bedrooms" value="${escAttr(c.bedrooms)}"></div>
+      <div class="field"><label>Baños</label><input type="text" data-field="bathrooms" value="${escAttr(c.bathrooms)}"></div>
+      <div class="field">
+        <label>Bondades y servicios (uno por línea)</label>
+        <textarea data-field="amenities" style="min-height:150px;">${amenitiesOf(c).map(escHtml).join("\n")}</textarea>
+        <div class="hint">Se muestran como ítems en la tarjeta y en el detalle. Podés empezar cada línea con un emoji.</div>
       </div>
-    `).join("");
-
+      <div class="field">
+        <label>Link de Airbnb</label>
+        <input type="text" data-field="airbnbUrl" value="${escAttr(c.airbnbUrl || "")}" placeholder="https://www.airbnb.com.uy/rooms/...">
+        <div class="hint">Si lo dejás vacío, el botón de Airbnb no se muestra.</div>
+      </div>
+      <div class="field"><label>Descripción</label><textarea data-field="desc">${escHtml(c.desc || "")}</textarea></div>
+      <div class="hint">Las fotos se editan en la pestaña Fotos y los precios en Temporadas.</div>`;
+    bindCasaPicker(body);
     body.querySelectorAll("[data-field]").forEach(input=>{
       input.addEventListener("change", async ()=>{
-        const id = parseInt(input.dataset.id);
         const field = input.dataset.field;
-        const c = CONFIG.casitas.find(x=>x.id===id);
-        if(field === "gallery"){
-          c.gallery = input.value.split("\n").map(s=>s.trim()).filter(Boolean);
-        } else if(field === "amenities"){
+        if(field === "amenities"){
           c.amenities = input.value.split("\n").map(s=>s.trim()).filter(Boolean);
         } else {
           c[field] = input.value;
@@ -895,40 +976,10 @@ function renderAdminTabBody(){
         renderAdminTabBody();
       });
     });
-
-    body.querySelectorAll("[data-upload-main]").forEach(input=>{
-      input.addEventListener("change", async ()=>{
-        const id = parseInt(input.dataset.uploadMain);
-        const file = input.files[0];
-        if(!file) return;
-        showToast("Subiendo foto…");
-        const url = await uploadPhoto(file);
-        if(!url) return;
-        const c = CONFIG.casitas.find(x=>x.id===id);
-        c.mainPhoto = url;
-        renderAll();
-        await saveConfig();
-        renderAdminTabBody();
-      });
-    });
-
-    body.querySelectorAll("[data-upload-gallery]").forEach(input=>{
-      input.addEventListener("change", async ()=>{
-        const id = parseInt(input.dataset.uploadGallery);
-        const files = Array.from(input.files || []);
-        if(!files.length) return;
-        showToast("Subiendo fotos…");
-        const c = CONFIG.casitas.find(x=>x.id===id);
-        for(const file of files){
-          const url = await uploadPhoto(file);
-          if(url) c.gallery.push(url);
-        }
-        renderAll();
-        await saveConfig();
-        renderAdminTabBody();
-      });
-    });
   }
+
+  if(state.adminTab === "fotos"){ renderPhotosTab(body); }
+  if(state.adminTab === "portada"){ renderCoverTab(body); }
 
   if(state.adminTab === "pagos"){
     body.innerHTML = CONFIG.paymentMethods.map((p,i)=>`
@@ -1126,6 +1177,229 @@ async function renderCalTab(body){
     renderCalTab(body);
   });
 }
+
+/* ---------- ADMIN: utilidades ---------- */
+function escAttr(s){ return escHtml(s == null ? "" : s).replace(/"/g, "&quot;"); }
+function adminCasa(){
+  let c = CONFIG.casitas.find(x=>x.id===state.adminCasa);
+  if(!c){ c = CONFIG.casitas[0]; state.adminCasa = c.id; }
+  return c;
+}
+function casaPickerHtml(id){
+  return `<div class="casa-picker">${CONFIG.casitas.map(x=>`<button data-pick="${x.id}" class="${x.id===id ? "active" : ""}">${escHtml(String(x.name).split("·")[0].trim())}</button>`).join("")}</div>`;
+}
+function bindCasaPicker(body){
+  body.querySelectorAll("[data-pick]").forEach(b=>b.addEventListener("click", ()=>{
+    state.adminCasa = parseInt(b.dataset.pick); renderAdminTabBody();
+  }));
+}
+
+/* ---------- ADMIN: FOTOS POR SECTOR ---------- */
+function ensureSections(c){
+  if(!Array.isArray(c.sections)) c.sections = [{ name:"Fotos", photos:(c.gallery || []).slice() }];
+  return c.sections;
+}
+async function commitPhotos(c, body){
+  c.gallery = ensureSections(c).flatMap(s=>s.photos);
+  renderAll();
+  await saveConfig();
+  renderPhotosTab(body);
+}
+function renderPhotosTab(body){
+  const c = adminCasa();
+  const secs = ensureSections(c);
+  const names = ["Exterior y jardín","Living y cocina","Dormitorios","Baño","Entorno y playa"];
+  body.innerHTML = casaPickerHtml(c.id) + `
+    <p class="sub">Subí, ordená y quitá las fotos de ${escHtml(c.name)} por sector, como en Airbnb. Las fotos se achican solas para que el sitio cargue rápido. Usá JPG o PNG.</p>
+    <div class="admin-section" style="border-top:none;margin-top:0;padding-top:0;">
+      <h3>Foto de portada</h3>
+      <div class="thumb-row"><img src="${escAttr(mainPhotoOf(c))}" style="width:140px;height:96px;" alt=""></div>
+      <input type="file" accept="image/*" id="coverFile">
+      <div class="hint">Es la que se ve en la tarjeta de la casita. También podés tocar ★ en cualquier foto de abajo.</div>
+    </div>
+    ${secs.map((s,si)=>`
+      <div class="admin-section">
+        <div class="sec-head">
+          <input type="text" data-secname="${si}" value="${escAttr(s.name)}">
+          <button class="remove-sec" data-secdel="${si}">Quitar sector ✕</button>
+        </div>
+        <div class="photo-grid">
+          ${s.photos.length ? s.photos.map((src,pi)=>`
+            <div class="photo-tile">
+              <img src="${escAttr(src)}" alt="" loading="lazy">
+              <div class="tile-actions">
+                <button data-act="left" data-s="${si}" data-p="${pi}" title="Mover a la izquierda">◀</button>
+                <button data-act="right" data-s="${si}" data-p="${pi}" title="Mover a la derecha">▶</button>
+                <button data-act="star" data-s="${si}" data-p="${pi}" title="Usar como portada" class="${c.mainPhoto===src ? "on" : ""}">★</button>
+                <button data-act="del" data-s="${si}" data-p="${pi}" title="Quitar foto">✕</button>
+              </div>
+            </div>`).join("") : '<p class="hint" style="grid-column:1/-1;">Este sector todavía no tiene fotos.</p>'}
+        </div>
+        <label class="btn btn-ghost upload-btn">＋ Subir fotos a este sector<input type="file" accept="image/*" multiple hidden data-secup="${si}"></label>
+      </div>`).join("")}
+    <div class="admin-section">
+      <h3>Agregar sector</h3>
+      <div class="inline-add">
+        <input type="text" id="newSecName" list="secNames" placeholder="Ej: Dormitorios">
+        <datalist id="secNames">${names.map(n=>`<option value="${n}">`).join("")}</datalist>
+        <button class="btn btn-dark" id="addSec">Agregar</button>
+      </div>
+    </div>`;
+
+  bindCasaPicker(body);
+
+  body.querySelector("#coverFile").addEventListener("change", async e=>{
+    const f = e.target.files[0]; if(!f) return;
+    showToast("Subiendo foto…");
+    const url = await uploadPhoto(f);
+    if(!url) return;
+    c.mainPhoto = url;
+    await commitPhotos(c, body);
+  });
+  body.querySelectorAll("[data-secname]").forEach(i=>i.addEventListener("change", async ()=>{
+    secs[parseInt(i.dataset.secname)].name = i.value.trim() || "Fotos";
+    await commitPhotos(c, body);
+  }));
+  body.querySelectorAll("[data-secdel]").forEach(b=>b.addEventListener("click", async ()=>{
+    const si = parseInt(b.dataset.secdel), n = secs[si].photos.length;
+    if(n && !confirm("Se van a quitar " + n + " foto(s) de este sector del sitio. ¿Continuar?")) return;
+    const removed = secs[si].photos;
+    secs.splice(si, 1);
+    if(removed.includes(c.mainPhoto)) c.mainPhoto = secs.flatMap(s=>s.photos)[0] || "";
+    await commitPhotos(c, body);
+  }));
+  body.querySelectorAll("[data-act]").forEach(b=>b.addEventListener("click", async ()=>{
+    const si = parseInt(b.dataset.s), pi = parseInt(b.dataset.p), arr = secs[si].photos, act = b.dataset.act;
+    if(act === "del"){
+      if(!confirm("¿Quitar esta foto del sitio?")) return;
+      const removed = arr.splice(pi, 1)[0];
+      if(c.mainPhoto === removed) c.mainPhoto = secs.flatMap(s=>s.photos)[0] || "";
+    } else if(act === "left" && pi > 0){
+      [arr[pi-1], arr[pi]] = [arr[pi], arr[pi-1]];
+    } else if(act === "right" && pi < arr.length - 1){
+      [arr[pi+1], arr[pi]] = [arr[pi], arr[pi+1]];
+    } else if(act === "star"){
+      c.mainPhoto = arr[pi];
+    }
+    await commitPhotos(c, body);
+  }));
+  body.querySelectorAll("[data-secup]").forEach(inp=>inp.addEventListener("change", async ()=>{
+    const si = parseInt(inp.dataset.secup), files = Array.from(inp.files || []);
+    if(!files.length) return;
+    let n = 0;
+    for(const f of files){
+      n++; showToast("Subiendo " + n + " de " + files.length + "…");
+      const url = await uploadPhoto(f);
+      if(url) secs[si].photos.push(url);
+    }
+    if(!c.mainPhoto) c.mainPhoto = secs[si].photos[0] || "";
+    await commitPhotos(c, body);
+  }));
+  body.querySelector("#addSec").addEventListener("click", async ()=>{
+    const name = body.querySelector("#newSecName").value.trim();
+    if(!name) return;
+    secs.push({ name, photos: [] });
+    await commitPhotos(c, body);
+  });
+}
+
+/* ---------- ADMIN: PORTADA Y MÚSICA ---------- */
+function renderCoverTab(body){
+  const b = CONFIG.business;
+  body.innerHTML = `
+    <div class="admin-section" style="border-top:none;margin-top:0;padding-top:0;">
+      <h3>Imagen principal de la página</h3>
+      <div class="thumb-row"><img src="${escAttr(b.heroImage || DEFAULT_HERO)}" style="width:200px;height:112px;" alt=""></div>
+      <div class="field">
+        <input type="file" accept="image/*" id="heroFile">
+        <div class="hint">Conviene una foto horizontal y de buena calidad. Se adapta sola al tamaño de cada pantalla.</div>
+        <input type="text" id="heroUrl" value="${escAttr(b.heroImage || "")}" placeholder="o pegá un link directo a una imagen" style="margin-top:8px;">
+      </div>
+      <button class="btn btn-ghost" id="heroReset" style="width:100%;padding:11px;font-size:13px;">Volver a la imagen original</button>
+    </div>
+
+    <div class="admin-section">
+      <h3>Música de fondo</h3>
+      <p class="sub">Los navegadores no dejan que la música empiece sola con sonido: el visitante la activa con el botón ♪ que aparece abajo a la izquierda. Usá música sin derechos de autor (por ejemplo Pixabay Music o la Biblioteca de audio de YouTube).</p>
+      ${b.musicUrl ? `<audio controls src="${escAttr(b.musicUrl)}" style="width:100%;margin-bottom:12px;"></audio>` : ""}
+      <div class="field">
+        <label>Subir archivo de audio (MP3)</label>
+        <input type="file" accept="audio/*" id="musicFile">
+        <div class="hint">Hasta 20 MB.</div>
+      </div>
+      <div class="field">
+        <label>o link directo a un MP3</label>
+        <input type="text" id="musicUrl" value="${escAttr(b.musicUrl || "")}">
+      </div>
+      <div class="field">
+        <label style="display:flex;gap:8px;align-items:center;font-weight:400;">
+          <input type="checkbox" id="musicAuto" ${b.musicAutoOnTouch ? "checked" : ""}> Intentar iniciar la música con el primer toque o clic del visitante
+        </label>
+      </div>
+      <button class="btn btn-ghost" id="musicRemove" style="width:100%;padding:11px;font-size:13px;">Quitar música</button>
+    </div>`;
+
+  const apply = async () => { renderAll(); await saveConfig(); renderCoverTab(body); };
+  body.querySelector("#heroFile").addEventListener("change", async e=>{
+    const f = e.target.files[0]; if(!f) return;
+    showToast("Subiendo imagen…");
+    const url = await uploadPhoto(f, 2400);
+    if(!url) return;
+    b.heroImage = url; await apply();
+  });
+  body.querySelector("#heroUrl").addEventListener("change", async e=>{ b.heroImage = e.target.value.trim(); await apply(); });
+  body.querySelector("#heroReset").addEventListener("click", async ()=>{ b.heroImage = ""; await apply(); });
+  body.querySelector("#musicFile").addEventListener("change", async e=>{
+    const f = e.target.files[0]; if(!f) return;
+    showToast("Subiendo audio…");
+    const url = await uploadAudio(f);
+    if(!url) return;
+    b.musicUrl = url; await apply();
+  });
+  body.querySelector("#musicUrl").addEventListener("change", async e=>{ b.musicUrl = e.target.value.trim(); await apply(); });
+  body.querySelector("#musicAuto").addEventListener("change", async e=>{ b.musicAutoOnTouch = e.target.checked; await apply(); });
+  body.querySelector("#musicRemove").addEventListener("click", async ()=>{ b.musicUrl = ""; await apply(); });
+}
+
+/* ---------- PORTADA Y MÚSICA EN EL SITIO ---------- */
+function renderHero(){
+  const hero = document.getElementById("top");
+  const img = CONFIG.business.heroImage;
+  hero.style.backgroundImage = img ? `url("${String(img).replace(/"/g, "%22")}")` : "";
+}
+function updateMusicBtn(){
+  const a = document.getElementById("bgm");
+  document.getElementById("musicBtn").textContent = a.paused ? "♪ Música" : "❚❚ Pausar música";
+}
+let musicAutoBound = false;
+function renderMusic(){
+  const b = CONFIG.business, audio = document.getElementById("bgm"), btn = document.getElementById("musicBtn");
+  const src = b.musicUrl || "";
+  if(!src){
+    audio.pause(); audio.removeAttribute("src"); btn.style.display = "none"; return;
+  }
+  if(audio.getAttribute("src") !== src){ audio.setAttribute("src", src); audio.volume = 0.35; }
+  btn.style.display = "inline-flex";
+  updateMusicBtn();
+  if(b.musicAutoOnTouch && !musicAutoBound){
+    musicAutoBound = true;
+    const start = e => {
+      if(e.target.closest && e.target.closest("#musicBtn, #adminFab, #adminOverlay")) return;
+      document.removeEventListener("pointerdown", start);
+      if(CONFIG.business.musicAutoOnTouch && audio.paused && audio.getAttribute("src")) audio.play().catch(()=>{});
+    };
+    document.addEventListener("pointerdown", start);
+  }
+}
+(function(){
+  const a = document.getElementById("bgm");
+  document.getElementById("musicBtn").addEventListener("click", ()=>{
+    if(a.paused) a.play().catch(()=>showToast("No se pudo reproducir la música", true));
+    else a.pause();
+  });
+  a.addEventListener("play", updateMusicBtn);
+  a.addEventListener("pause", updateMusicBtn);
+})();
 
 /* ---------- INIT ---------- */
 (async function init(){

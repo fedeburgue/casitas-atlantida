@@ -78,6 +78,20 @@ function migrate() {
 }
 migrate();
 
+// Borra del disco las fotos/audios que ya no están en la configuración
+// (con más de 1 hora de antigüedad, para no tocar subidas recién hechas).
+function cleanupUploads(cfg) {
+  try {
+    const text = JSON.stringify(cfg);
+    const cutoff = Date.now() - 60 * 60 * 1000;
+    for (const f of fs.readdirSync(UPLOAD_DIR)) {
+      const full = path.join(UPLOAD_DIR, f);
+      const st = fs.statSync(full);
+      if (st.isFile() && st.mtimeMs < cutoff && !text.includes(f)) fs.unlinkSync(full);
+    }
+  } catch (e) { console.error("cleanup:", e.message); }
+}
+
 /* ---------- autenticación simple ---------- */
 function safeEqual(a, b) {
   const A = Buffer.from(String(a)), B = Buffer.from(String(b));
@@ -237,6 +251,7 @@ app.put("/api/config", checkAuth, (req, res) => {
     sync: current.sync, // lo privado se conserva siempre
   };
   writeConfig(merged);
+  cleanupUploads(merged);
   res.json({ ok: true });
 });
 
@@ -292,6 +307,20 @@ const upload = multer({
 
 app.post("/api/upload", checkAuth, upload.single("photo"), (req, res) => {
   if (!req.file) return res.status(400).json({ error: "No se recibió ninguna imagen" });
+  res.json({ url: "/uploads/" + req.file.filename });
+});
+
+const uploadAudio = multer({
+  storage,
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20 MB
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith("audio/")) return cb(new Error("Solo se permiten archivos de audio (MP3, M4A, etc.)"));
+    cb(null, true);
+  },
+});
+
+app.post("/api/upload-audio", checkAuth, uploadAudio.single("audio"), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "No se recibió ningún audio" });
   res.json({ url: "/uploads/" + req.file.filename });
 });
 
