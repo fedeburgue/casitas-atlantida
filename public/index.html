@@ -6,16 +6,16 @@
 <title>Casitas Atlántida — Alquiler temporal frente al mar</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   :root{
-    --ink:#14181c;
-    --paper:#ffffff;
-    --mist:#f4f2ec;
-    --ocean:#1c4e5c;
-    --ocean-light:#2f7188;
-    --sand:#cbb491;
-    --line:#e3dfd5;
+    --ink:#25353a;
+    --paper:#fdfbf7;
+    --mist:#f3eee4;
+    --ocean:#4a6f73;
+    --ocean-light:#5f8a8f;
+    --sand:#c9b08a;
+    --line:#e4dccd;
     --danger:#a8402f;
     --ok:#3f7a5a;
     --radius:2px;
@@ -378,6 +378,112 @@
     .footer-top{flex-direction:column;}
     .section{padding:72px 0;}
   }
+
+  /* =====================================================
+     TEMA "POSADA DE PLAYA": serif elegante, tonos arena y mar,
+     títulos centrados con ornamento, casitas en filas alternadas
+     ===================================================== */
+  body{font-family:'Jost',-apple-system,sans-serif; font-weight:300; background:var(--paper); color:var(--ink);}
+  h1,h2,h3,h4,.display,#nav .brand,.footer-brand{font-family:'Cormorant Garamond',Georgia,serif; letter-spacing:0;}
+  #nav .brand{font-size:23px; letter-spacing:.14em; text-transform:uppercase; font-weight:500;}
+  #nav .links a{text-transform:uppercase; letter-spacing:.14em; font-size:11.5px;}
+  #nav .cta-nav{border-radius:0; text-transform:uppercase; letter-spacing:.16em; font-size:11px; padding:11px 20px;}
+  .btn{border-radius:0; text-transform:uppercase; letter-spacing:.16em; font-size:11.5px; padding:16px 30px; font-weight:400;}
+  .btn-primary{background:var(--paper);}
+  .btn-primary:hover{background:var(--sand);}
+
+  /* hero centrado con barra de consulta */
+  .hero{flex-direction:column; align-items:center; justify-content:center; text-align:center; height:auto; min-height:100vh; padding:130px 24px 36px;}
+  .hero::before{background:linear-gradient(180deg, rgba(20,30,32,.38) 0%, rgba(20,30,32,.22) 45%, rgba(20,30,32,.62) 100%);}
+  .hero-inner{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0; max-width:900px;}
+  .hero h1{font-weight:400; font-size:clamp(46px,7.4vw,98px); line-height:1.0; max-width:900px;}
+  .hero p{margin-left:auto; margin-right:auto; font-size:18px; max-width:560px;}
+  .hero-eyebrow{letter-spacing:.24em; font-size:12px;}
+  .hero-actions{justify-content:center;}
+  .book-bar{position:relative; z-index:2; display:flex; flex-wrap:wrap; background:rgba(253,251,247,.97); box-shadow:0 18px 50px rgba(0,0,0,.28); max-width:980px; width:100%; margin-top:44px; color:var(--ink);}
+  .book-bar label{flex:1 1 150px; display:flex; flex-direction:column; text-align:left; padding:14px 20px; border-right:1px solid var(--line); font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:#7a7f7d;}
+  .book-bar input,.book-bar select{border:none; background:transparent; font-family:inherit; font-size:15px; letter-spacing:0; text-transform:none; color:var(--ink); padding:5px 0 0; outline:none; width:100%;}
+  .book-bar .btn{flex:1 1 170px; margin:0;}
+
+  /* títulos de sección centrados con ornamento */
+  .section-head{margin-left:auto; margin-right:auto; text-align:center; max-width:700px;}
+  .ornament{display:flex; justify-content:center; color:var(--ocean); margin-bottom:14px;}
+  .ornament svg{width:50px; height:30px; fill:none; stroke:currentColor; stroke-width:1.2; stroke-linecap:round; stroke-linejoin:round;}
+  .section-eyebrow{letter-spacing:.24em; text-transform:uppercase; font-size:11.5px; font-weight:400; color:var(--ocean);}
+  .section-head h2{font-size:clamp(34px,4.4vw,56px); font-weight:400; line-height:1.05;}
+  .section-head p{font-size:16.5px; color:#5c6563;}
+
+  /* sobre nosotros */
+  .about-grid{display:grid; grid-template-columns:1fr 1fr; gap:80px; align-items:center;}
+  .about-text h2{font-size:clamp(36px,4.6vw,60px); font-weight:400; line-height:1.04; margin:14px 0 24px;}
+  .about-text p{font-size:17px; line-height:1.75; color:#4f5857; margin-bottom:18px;}
+  .about-text .btn{margin-top:14px;}
+  .about-img img{width:100%; aspect-ratio:4/5; object-fit:cover; border-radius:220px 220px 4px 4px; background:var(--mist);}
+
+  /* casitas en filas alternadas */
+  .lineup-grid{display:flex; flex-direction:column; gap:88px;}
+  .casa-card{display:grid; grid-template-columns:1.1fr 1fr; gap:0 68px; align-items:center; border:none; background:transparent; overflow:visible;}
+  .casa-card:hover{box-shadow:none; transform:none;}
+  .casa-card.reverse .casa-photo{order:2;}
+  .casa-photo{aspect-ratio:4/3; border-radius:2px;}
+  .casa-body{padding:0; gap:16px;}
+  .casa-body h3{font-size:clamp(32px,3.4vw,46px); font-weight:400; line-height:1.05;}
+  .casa-meta{text-transform:uppercase; letter-spacing:.14em; font-size:11.5px; color:#6a706f; gap:0;}
+  .casa-meta span + span::before{content:"·"; margin:0 12px;}
+  .casa-desc{font-size:16px; color:#4f5857;}
+  .casa-price{font-family:'Cormorant Garamond',serif; font-size:24px; font-weight:500;}
+  .casa-actions .btn{flex:none; padding:14px 22px;}
+  .casa-tag{border-radius:0; letter-spacing:.14em;}
+  .detail-info .casa-meta{font-size:12px;}
+  .price-row .amount{font-family:'Cormorant Garamond',serif; font-size:30px;}
+
+  /* comodidades */
+  .amen-list{list-style:none; columns:2; column-gap:64px; max-width:860px; margin:0 auto; padding:0;}
+  .amen-list li{padding:14px 0; border-bottom:1px solid var(--line); break-inside:avoid; font-size:16.5px;}
+  .amen-list li::before{content:""; display:inline-block; width:7px; height:7px; border:1px solid var(--ocean); border-radius:50%; margin-right:16px; vertical-align:middle;}
+
+  /* tarjetas de locación / experiencias y testimonios */
+  .card-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:34px;}
+  .info-card img{width:100%; aspect-ratio:4/5; object-fit:cover; background:var(--mist); border-radius:2px;}
+  .info-card h3{font-size:29px; font-weight:400; margin:20px 0 8px;}
+  .info-card p{font-size:15px; line-height:1.65; color:#5c6563;}
+  .testi-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:40px;}
+  .testi{text-align:center; padding:0 10px;}
+  .testi blockquote{font-family:'Cormorant Garamond',serif; font-size:24px; line-height:1.45; font-style:italic;}
+  .testi cite{display:block; margin-top:16px; font-style:normal; font-size:11.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--ocean);}
+
+  /* tarifas y pagos */
+  .season-table th{background:var(--mist); letter-spacing:.14em;}
+  .season-table td:first-child{font-family:'Cormorant Garamond',serif; font-size:20px;}
+  .season-table tr.now td{background:#eef3f2;}
+  .pay-card{border-radius:2px;}
+  .pay-card h3{font-size:24px; font-weight:400;}
+  .pay-card .pay-icon{background:var(--ocean);}
+
+  /* contacto */
+  .contact-grid{display:grid; grid-template-columns:1fr 1.3fr; gap:60px; align-items:stretch;}
+  .contact-item{padding:18px 0; border-bottom:1px solid var(--line);}
+  .contact-item span{display:block; font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--ocean); margin-bottom:6px;}
+  .contact-item strong, .contact-item a{font-family:'Cormorant Garamond',serif; font-size:26px; font-weight:400;}
+  .contact-item a:hover{color:var(--ocean);}
+  .map-wrap{min-height:340px; background:var(--mist);}
+  .map-wrap iframe{width:100%; height:100%; min-height:340px; border:0;}
+  .footer-simple{display:flex; justify-content:space-between; align-items:center; gap:20px; flex-wrap:wrap;}
+  footer{padding:44px 0;}
+  .footer-brand{font-size:24px; letter-spacing:.12em; text-transform:uppercase; margin:0;}
+
+  @media (max-width: 860px){
+    .about-grid{grid-template-columns:1fr; gap:40px;}
+    .about-img img{border-radius:160px 160px 4px 4px;}
+    .casa-card{grid-template-columns:1fr; gap:26px;}
+    .casa-card.reverse .casa-photo{order:0;}
+    .lineup-grid{gap:64px;}
+    .card-grid,.testi-grid{grid-template-columns:1fr;}
+    .contact-grid{grid-template-columns:1fr; gap:32px;}
+    .amen-list{columns:1;}
+    .book-bar label{flex:1 1 45%; border-bottom:1px solid var(--line);}
+    .hero{padding-top:110px;}
+  }
 </style>
 </head>
 <body>
@@ -387,10 +493,11 @@
   <div class="links">
     <a href="#casitas">Casitas</a>
     <a href="#tarifas">Tarifas</a>
-    <a href="#pagos">Medios de pago</a>
+    <a href="#ubicacion">Ubicación</a>
+    <a href="#pagos">Pagos</a>
     <a href="#contacto">Contacto</a>
   </div>
-  <a href="#" id="navCta" class="cta-nav">Reservar</a>
+  <a href="#" id="navCta" class="cta-nav">Reservas online</a>
 </nav>
 
 <header class="hero" id="top">
@@ -403,17 +510,36 @@
       <a href="#" id="heroWhatsapp" class="btn btn-outline">Consultar por WhatsApp</a>
     </div>
   </div>
-  <div class="scroll-cue"><span>Scroll</span><span class="line"></span></div>
+  <div class="book-bar" id="bookBar">
+    <label>Check in<input type="date" id="bkIn"></label>
+    <label>Check out<input type="date" id="bkOut"></label>
+    <label>Huéspedes
+      <select id="bkGuests">
+        <option value="1">1</option><option value="2" selected>2</option><option value="3">3</option>
+        <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+      </select>
+    </label>
+    <label>Casita<select id="bkCasa"><option value="">Cualquiera</option></select></label>
+    <button class="btn btn-dark" id="bkGo">Consultar</button>
+  </div>
 </header>
 
-<div class="wave-divider">
-  <svg viewBox="0 0 1200 64" preserveAspectRatio="none"><path d="M0,32 C150,60 350,4 600,32 C850,60 1050,4 1200,32 L1200,64 L0,64 Z" fill="#ffffff"></path></svg>
-</div>
+<section class="section" id="sobre">
+  <div class="container about-grid">
+    <div class="about-text">
+      <div class="section-eyebrow">· sobre nosotros ·</div>
+      <h2 id="aboutTitle"></h2>
+      <div id="aboutBody"></div>
+      <a href="#casitas" class="btn btn-dark">Ver las casitas</a>
+    </div>
+    <div class="about-img"><img id="aboutImg" alt=""></div>
+  </div>
+</section>
 
 <section class="section section-mist" id="casitas">
   <div class="container">
     <div class="section-head">
-      <div class="section-eyebrow">La línea</div>
+      <div class="section-eyebrow">· casitas ·</div>
       <h2>Elegí tu casita</h2>
       <p>Cada casita tiene su propia personalidad, capacidad y vista. Tocá "Ver casita" para conocer fotos, precio y disponibilidad real.</p>
     </div>
@@ -470,10 +596,20 @@
   </div>
 </section>
 
-<section class="section" id="tarifas">
+<section class="section" id="comodidades">
   <div class="container">
     <div class="section-head">
-      <div class="section-eyebrow">Tarifas</div>
+      <div class="section-eyebrow">· comodidades ·</div>
+      <h2>Todo lo que necesitás</h2>
+    </div>
+    <ul class="amen-list" id="amenList"></ul>
+  </div>
+</section>
+
+<section class="section section-mist" id="tarifas">
+  <div class="container">
+    <div class="section-head">
+      <div class="section-eyebrow">· tarifas ·</div>
       <h2>Temporada de verano</h2>
       <p>Precio por noche en reserva directa, igual para las cuatro casitas. En temporada alta rige una estadía mínima mayor.</p>
     </div>
@@ -483,10 +619,41 @@
   </div>
 </section>
 
+<section class="section" id="ubicacion">
+  <div class="container">
+    <div class="section-head">
+      <div class="section-eyebrow">· locación ·</div>
+      <h2 id="locTitle"></h2>
+      <p id="locText"></p>
+    </div>
+    <div class="card-grid" id="placesGrid"></div>
+  </div>
+</section>
+
+<section class="section section-mist" id="experiencias">
+  <div class="container">
+    <div class="section-head">
+      <div class="section-eyebrow">· experiencias ·</div>
+      <h2 id="expTitle"></h2>
+    </div>
+    <div class="card-grid" id="expGrid"></div>
+  </div>
+</section>
+
+<section class="section" id="testimonios">
+  <div class="container">
+    <div class="section-head">
+      <div class="section-eyebrow">· huéspedes ·</div>
+      <h2>La voz de nuestros huéspedes</h2>
+    </div>
+    <div class="testi-grid" id="testiGrid"></div>
+  </div>
+</section>
+
 <section class="section section-mist" id="pagos">
   <div class="container">
     <div class="section-head">
-      <div class="section-eyebrow">Cómo pagar</div>
+      <div class="section-eyebrow">· cómo pagar ·</div>
       <h2>Medios de pago</h2>
       <p>Coordinamos el medio de pago directamente por WhatsApp al confirmar tu reserva.</p>
     </div>
@@ -494,31 +661,28 @@
   </div>
 </section>
 
-<footer id="contacto">
+<section class="section" id="contacto">
   <div class="container">
-    <div class="footer-top">
-      <div>
-        <div class="footer-brand">Casitas Atlántida</div>
-        <p id="footerTagline">Alquiler temporal frente al mar en Atlántida, Canelones.</p>
-      </div>
-      <div class="footer-cols">
-        <div class="footer-col">
-          <h5>Contacto</h5>
-          <a href="#" id="footerWhatsapp">WhatsApp</a>
-          <p id="footerLocation">Atlántida, Canelones, Uruguay</p>
-        </div>
-        <div class="footer-col">
-          <h5>Sitio</h5>
-          <a href="#casitas">Casitas</a>
-          <a href="#tarifas">Tarifas</a>
-          <a href="#pagos">Medios de pago</a>
-        </div>
-      </div>
+    <div class="section-head">
+      <div class="section-eyebrow">· contacto ·</div>
+      <h2>¡Te esperamos!</h2>
     </div>
-    <div class="footer-bottom">
-      <span>© <span id="year"></span> Casitas Atlántida</span>
-      <span>Hecho para alquilar directo, sin intermediarios.</span>
+    <div class="contact-grid">
+      <div class="contact-info">
+        <div class="contact-item"><span>Ubicación</span><strong id="footerLocation"></strong></div>
+        <div class="contact-item"><span>WhatsApp</span><a href="#" id="footerWhatsapp" target="_blank" rel="noopener"></a></div>
+        <div class="contact-item" id="contactEmailWrap" style="display:none;"><span>Email</span><a href="#" id="contactEmail"></a></div>
+        <div class="contact-item" id="contactIgWrap" style="display:none;"><span>Instagram</span><a href="#" id="contactIg" target="_blank" rel="noopener"></a></div>
+      </div>
+      <div class="map-wrap"><iframe id="mapFrame" title="Mapa de ubicación" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe></div>
     </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container footer-simple">
+    <div class="footer-brand">Casitas Atlántida</div>
+    <div class="footer-bottom" style="border:none;padding:0;">© <span id="year"></span> Casitas Atlántida · Reservas directas, sin intermediarios</div>
   </div>
 </footer>
 
@@ -713,9 +877,9 @@ function priceLine(){
 function renderLineup(){
   const grid = document.getElementById("lineupGrid");
   grid.innerHTML = "";
-  CONFIG.casitas.forEach(c=>{
+  CONFIG.casitas.forEach((c, idx)=>{
     const card = document.createElement("div");
-    card.className = "casa-card";
+    card.className = "casa-card" + (idx % 2 ? " reverse" : "");
     card.innerHTML = `
       <div class="casa-photo">
         <span class="casa-tag">${c.tag}</span>
@@ -723,7 +887,7 @@ function renderLineup(){
       </div>
       <div class="casa-body">
         <h3>${c.name}</h3>
-        <div class="casa-meta"><span>🛏 ${c.bedrooms}</span><span>🛁 ${c.bathrooms}</span><span>👤 ${c.capacity}</span></div>
+        <div class="casa-meta"><span>${c.bedrooms}</span><span>${c.bathrooms}</span><span>${c.capacity}</span></div>
         <div class="casa-amenities">${amenitiesHtml(c)}</div>
         <p class="casa-desc">${c.desc}</p>
         <div class="casa-price">${priceLine()}</div>
@@ -753,7 +917,7 @@ function openDetail(id, noScroll){
 
   document.getElementById("detailTitle").textContent = c.name;
   document.getElementById("detailDesc").textContent = c.desc;
-  document.getElementById("detailMeta").innerHTML = `<span>🛏 ${c.bedrooms}</span><span>🛁 ${c.bathrooms}</span><span>👤 ${c.capacity}</span><span>📍 ${c.tag}</span>`;
+  document.getElementById("detailMeta").innerHTML = `<span>${c.bedrooms}</span><span>${c.bathrooms}</span><span>${c.capacity}</span><span>${c.tag}</span>`;
   document.getElementById("detailAmenities").innerHTML = amenitiesHtml(c);
   document.getElementById("detailPrice").innerHTML = priceLine();
   document.getElementById("detailMin").innerHTML = `Estadía mínima de ${(CONFIG.business.minNights || 2)} noches todo el año; en verano puede ser mayor. Fuera de temporada, consultá disponibilidad y tarifa. <a href="#tarifas">Ver tarifas</a>`;
@@ -1000,6 +1164,140 @@ function renderSeasons(){
   document.getElementById("seasonNote").textContent = "Fuera de estas fechas, la estadía mínima es de " + (CONFIG.business.minNights || 2) + " noches. Para el resto del año, consultá disponibilidad y tarifa por WhatsApp.";
 }
 
+/* ---------- CONTENIDO EDITABLE DEL SITIO ---------- */
+const UNS = "https://images.unsplash.com/photo-";
+const DEFAULT_CONTENT = {
+  aboutTitle: "Un descanso junto al mar",
+  aboutText: "Ubicadas a pocas cuadras de la playa, en un entorno residencial tranquilo y con una plaza frente al predio, nuestras casitas ofrecen comodidad, privacidad y servicios para disfrutar de una estadía placentera en Atlántida.\n\nCada casita tiene dos dormitorios, jardín privado con parrillero y todo lo necesario para sentirte como en casa.",
+  aboutImage: UNS + "1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80",
+  comodidades: DEFAULT_AMENITIES,
+  locTitle: "Atlántida",
+  locText: "Un tranquilo balneario de la costa de Canelones, ideal para descansar a pocas cuadras del mar.",
+  places: [
+    { title: "A pocas cuadras de la playa", text: "Un entorno residencial tranquilo, a pasos del mar.", image: UNS + "1519046904884-53103b34b206?auto=format&fit=crop&w=900&q=80" },
+    { title: "Plaza frente al predio", text: "Un espacio verde justo enfrente de las casitas.", image: UNS + "1441974231531-c6227db76b6e?auto=format&fit=crop&w=900&q=80" },
+    { title: "Predio cerrado", text: "Privacidad y seguridad, con estacionamiento privado.", image: UNS + "1564013799919-ab600027ffc6?auto=format&fit=crop&w=900&q=80" }
+  ],
+  expTitle: "Para disfrutar de tu estadía",
+  experiences: [
+    { title: "Días de playa", text: "Servicio de playa con sillas y sombrilla durante el verano.", image: UNS + "1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=80" },
+    { title: "Asados al aire libre", text: "Jardín privado con parrillero y mobiliario exterior en cada casita.", image: UNS + "1499793983690-e29da59ef1c2?auto=format&fit=crop&w=900&q=80" },
+    { title: "Descanso y desconexión", text: "Dos dormitorios, aire acondicionado y todo para sentirte como en casa.", image: UNS + "1505691938895-1758d7feb511?auto=format&fit=crop&w=900&q=80" }
+  ],
+  testimonials: [],
+  email: "", instagram: "", mapQuery: ""
+};
+function contentOf(key){
+  const v = CONFIG.business[key];
+  return (v === undefined || v === null) ? DEFAULT_CONTENT[key] : v;
+}
+const ORNAMENTS = [
+  '<svg viewBox="0 0 50 30"><path d="M3 11c4.5 0 4.5-4 9-4s4.5 4 9 4 4.5-4 9-4 4.5 4 9 4 4.5-4 7-4"/><path d="M3 21c4.5 0 4.5-4 9-4s4.5 4 9 4 4.5-4 9-4 4.5 4 9 4 4.5-4 7-4"/></svg>',
+  '<svg viewBox="0 0 50 30"><circle cx="25" cy="15" r="6"/><path d="M25 3v4M25 23v4M13 15H9M41 15h-4M16.5 6.5l2.8 2.8M30.7 20.7l2.8 2.8M33.5 6.5l-2.8 2.8M19.3 20.7l-2.8 2.8"/></svg>',
+  '<svg viewBox="0 0 50 30"><path d="M25 27L11 14c0-7 6-11 14-11s14 4 14 11z"/><path d="M25 27V4M25 27L17 6M25 27l8-21M25 27L13 10M25 27l12-17"/></svg>',
+  '<svg viewBox="0 0 50 30"><path d="M25 28V12"/><path d="M25 12c-3-6-9-7-14-5 4 0 8 2 10 6M25 12c3-6 9-7 14-5-4 0-8 2-10 6M25 12c-1-5-1-8 0-10 1 2 1 5 0 10"/></svg>'
+];
+function injectOrnaments(){
+  document.querySelectorAll(".section-head").forEach((el,i)=>{
+    el.insertAdjacentHTML("afterbegin", '<div class="ornament">' + ORNAMENTS[i % ORNAMENTS.length] + '</div>');
+  });
+}
+function renderContent(){
+  const b = CONFIG.business;
+  // sobre nosotros
+  document.getElementById("aboutTitle").textContent = contentOf("aboutTitle");
+  document.getElementById("aboutBody").innerHTML = String(contentOf("aboutText")).split(/\n{2,}/).map(s=>s.trim()).filter(Boolean)
+    .map(s=>"<p>" + escHtml(s).replace(/\n/g, "<br>") + "</p>").join("");
+  document.getElementById("aboutImg").src = contentOf("aboutImage") || DEFAULT_CONTENT.aboutImage;
+  // comodidades (sin el emoji inicial, para un look más sobrio)
+  const am = Array.isArray(contentOf("comodidades")) ? contentOf("comodidades") : [];
+  document.getElementById("amenList").innerHTML = am.map(a=>"<li>" + escHtml(String(a).replace(/^[^\p{L}\p{N}]+/u, "")) + "</li>").join("");
+  document.getElementById("comodidades").style.display = am.length ? "" : "none";
+  // tarjetas
+  const cards = arr => arr.map(it=>`<div class="info-card">${it.image ? `<img src="${escAttr(it.image)}" alt="${escAttr(it.title)}" loading="lazy">` : ""}<h3>${escHtml(it.title || "")}</h3><p>${escHtml(it.text || "")}</p></div>`).join("");
+  document.getElementById("locTitle").textContent = contentOf("locTitle");
+  document.getElementById("locText").textContent = contentOf("locText");
+  document.getElementById("placesGrid").innerHTML = cards(Array.isArray(contentOf("places")) ? contentOf("places") : []);
+  const ex = Array.isArray(contentOf("experiences")) ? contentOf("experiences") : [];
+  document.getElementById("expTitle").textContent = contentOf("expTitle");
+  document.getElementById("expGrid").innerHTML = cards(ex);
+  document.getElementById("experiencias").style.display = ex.length ? "" : "none";
+  const ts = (Array.isArray(contentOf("testimonials")) ? contentOf("testimonials") : []).filter(t=>t.text);
+  document.getElementById("testiGrid").innerHTML = ts.map(t=>`<div class="testi"><blockquote>“${escHtml(t.text)}”</blockquote><cite>${escHtml(t.name || "")}</cite></div>`).join("");
+  document.getElementById("testimonios").style.display = ts.length ? "" : "none";
+  // contacto
+  const wa = document.getElementById("footerWhatsapp");
+  wa.textContent = "+" + b.whatsappNumber;
+  const mail = (b.email || "").trim();
+  document.getElementById("contactEmailWrap").style.display = mail ? "" : "none";
+  document.getElementById("contactEmail").textContent = mail;
+  document.getElementById("contactEmail").href = mail ? "mailto:" + mail : "#";
+  const ig = (b.instagram || "").trim();
+  document.getElementById("contactIgWrap").style.display = ig ? "" : "none";
+  document.getElementById("contactIg").textContent = ig.replace(/^https?:\/\/(www\.)?instagram\.com\//i, "@").replace(/\/$/, "");
+  document.getElementById("contactIg").href = ig ? (/^https?:/i.test(ig) ? ig : "https://instagram.com/" + ig.replace(/^@/, "")) : "#";
+  const q = (b.mapQuery || b.location || "").trim();
+  const frame = document.getElementById("mapFrame");
+  if(q && frame.getAttribute("data-q") !== q){
+    frame.setAttribute("data-q", q);
+    frame.src = "https://maps.google.com/maps?q=" + encodeURIComponent(q) + "&t=m&z=14&output=embed";
+  }
+}
+
+/* ---------- BARRA DE CONSULTA (check in / check out → WhatsApp) ---------- */
+function busyFor(id){
+  return new Set([...(CONFIG.availability[id] || []), ...(((CONFIG.externalBusy || {})[id]) || [])]);
+}
+function minNightsFor(dateStr){
+  const md = dateStr.slice(5);
+  const s = (CONFIG.seasons || []).find(x => x.from <= x.to ? (md >= x.from && md <= x.to) : (md >= x.from || md <= x.to));
+  return s ? s.minNights : (CONFIG.business.minNights || 2);
+}
+function fmtDMY(s){ const [y,m,d] = s.split("-"); return d + "/" + m + "/" + y; }
+function renderBookBar(){
+  const sel = document.getElementById("bkCasa");
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">Cualquiera</option>' + CONFIG.casitas.map(c=>`<option value="${c.id}">${escHtml(String(c.name).split("·")[0].trim())}</option>`).join("");
+  sel.value = prev;
+  const t = new Date(), today = dateKey(t.getFullYear(), t.getMonth(), t.getDate());
+  document.getElementById("bkIn").min = today;
+  document.getElementById("bkOut").min = today;
+}
+(function(){
+  const inEl = document.getElementById("bkIn"), outEl = document.getElementById("bkOut");
+  inEl.addEventListener("change", ()=>{
+    if(!inEl.value) return;
+    const next = new Date(inEl.value + "T00:00:00Z").getTime() + 86400000;
+    outEl.min = new Date(next).toISOString().slice(0, 10);
+    if(outEl.value && outEl.value <= inEl.value) outEl.value = "";
+  });
+  document.getElementById("bkGo").addEventListener("click", ()=>{
+    const inn = inEl.value, out = outEl.value, g = document.getElementById("bkGuests").value;
+    const casa = CONFIG.casitas.find(c => String(c.id) === document.getElementById("bkCasa").value);
+    let msg = "Hola! Quiero consultar disponibilidad en Casitas Atlántida";
+    if(casa) msg += " para la " + casa.name;
+    if(inn || out){
+      if(!inn || !out){ showToast("Elegí la fecha de entrada y la de salida", true); return; }
+      if(out <= inn){ showToast("La salida tiene que ser posterior a la entrada", true); return; }
+      const nights = Math.round((new Date(out + "T00:00:00Z") - new Date(inn + "T00:00:00Z")) / 86400000);
+      const min = minNightsFor(inn);
+      if(nights < min){ showToast("Para esas fechas la estadía mínima es de " + min + " noches", true); return; }
+      if(casa){
+        const busy = busyFor(casa.id);
+        for(let d = new Date(inn + "T00:00:00Z"); d < new Date(out + "T00:00:00Z"); d = new Date(d.getTime() + 86400000)){
+          if(busy.has(d.toISOString().slice(0, 10))){
+            showToast("Esas fechas figuran ocupadas en esa casita. Probá con otras fechas u otra casita.", true);
+            return;
+          }
+        }
+      }
+      msg += " del " + fmtDMY(inn) + " al " + fmtDMY(out) + " (" + nights + " noches)";
+    }
+    msg += " para " + g + (g === "1" ? " persona." : " personas.");
+    window.open(waLink(msg), "_blank", "noopener");
+  });
+})();
+
 /* ---------- RENDER: GLOBAL ---------- */
 function renderGlobal(){
   const link = waLink("Hola! Quiero consultar por disponibilidad en Casitas Atlántida.");
@@ -1014,6 +1312,8 @@ function renderGlobal(){
 
 function renderAll(){
   renderGlobal();
+  renderContent();
+  renderBookBar();
   renderHero();
   renderMusic();
   renderLineup();
@@ -1059,6 +1359,7 @@ function renderAdmin(){
       <button data-tab="casitas">Casitas</button>
       <button data-tab="fotos">Fotos</button>
       <button data-tab="portada">Portada y música</button>
+      <button data-tab="contenido">Contenido</button>
       <button data-tab="pagos">Pagos</button>
       <button data-tab="temporadas">Temporadas</button>
       <button data-tab="calendarios">Calendarios</button>
@@ -1130,6 +1431,7 @@ function renderAdminTabBody(){
 
   if(state.adminTab === "fotos"){ renderPhotosTab(body); }
   if(state.adminTab === "portada"){ renderCoverTab(body); }
+  if(state.adminTab === "contenido"){ renderContentTab(body); }
 
   if(state.adminTab === "pagos"){
     body.innerHTML = CONFIG.paymentMethods.map((p,i)=>`
@@ -1635,11 +1937,118 @@ function renderMusic(){
   a.addEventListener("pause", updateMusicBtn);
 })();
 
+/* ---------- ADMIN: CONTENIDO DE LAS SECCIONES ---------- */
+function listOf(key){
+  const b = CONFIG.business;
+  if(!Array.isArray(b[key])) b[key] = JSON.parse(JSON.stringify(DEFAULT_CONTENT[key]));
+  return b[key];
+}
+function cardRowsHtml(key){
+  return listOf(key).map((it,i)=>`
+    <div class="pay-edit-row">
+      <button class="remove-pay" data-card-del="${key}:${i}">Quitar ✕</button>
+      <div class="thumb-row">${it.image ? `<img src="${escAttr(it.image)}" style="width:96px;height:64px;" alt="">` : ""}</div>
+      <div class="field"><input type="file" accept="image/*,.heic,.heif" data-card-img="${key}:${i}"></div>
+      <div class="field"><label>Título</label><input type="text" data-card="${key}:${i}:title" value="${escAttr(it.title)}"></div>
+      <div class="field"><label>Texto</label><textarea data-card="${key}:${i}:text">${escHtml(it.text || "")}</textarea></div>
+    </div>`).join("") + `<button class="btn btn-ghost" data-card-add="${key}" style="width:100%;padding:11px;font-size:12px;">+ Agregar</button>`;
+}
+function renderContentTab(body){
+  const b = CONFIG.business;
+  const testi = listOf("testimonials").map((it,i)=>`
+    <div class="pay-edit-row">
+      <button class="remove-pay" data-card-del="testimonials:${i}">Quitar ✕</button>
+      <div class="field"><label>Comentario</label><textarea data-card="testimonials:${i}:text">${escHtml(it.text || "")}</textarea></div>
+      <div class="field"><label>Nombre</label><input type="text" data-card="testimonials:${i}:name" value="${escAttr(it.name || "")}"></div>
+    </div>`).join("") + `<button class="btn btn-ghost" data-card-add="testimonials" style="width:100%;padding:11px;font-size:12px;">+ Agregar comentario</button>`;
+
+  body.innerHTML = `
+    <p class="sub">Textos e imágenes de cada sección del sitio. Los cambios se ven al instante.</p>
+
+    <div class="admin-section" style="border-top:none;margin-top:0;padding-top:0;">
+      <h3>Sobre nosotros</h3>
+      <div class="field"><label>Título</label><input type="text" data-biz="aboutTitle" value="${escAttr(contentOf("aboutTitle"))}"></div>
+      <div class="field"><label>Texto</label><textarea data-biz="aboutText" style="min-height:150px;">${escHtml(contentOf("aboutText"))}</textarea><div class="hint">Dejá una línea en blanco para separar párrafos.</div></div>
+      <div class="field">
+        <label>Imagen</label>
+        <div class="thumb-row"><img src="${escAttr(contentOf("aboutImage"))}" style="width:96px;height:120px;" alt=""></div>
+        <input type="file" accept="image/*,.heic,.heif" id="aboutFile">
+      </div>
+    </div>
+
+    <div class="admin-section">
+      <h3>Comodidades</h3>
+      <div class="field"><textarea data-biz-lines="comodidades" style="min-height:160px;">${(Array.isArray(contentOf("comodidades")) ? contentOf("comodidades") : []).map(escHtml).join("\n")}</textarea><div class="hint">Una por línea. Si la dejás vacía, la sección se oculta.</div></div>
+    </div>
+
+    <div class="admin-section">
+      <h3>Locación</h3>
+      <div class="field"><label>Título</label><input type="text" data-biz="locTitle" value="${escAttr(contentOf("locTitle"))}"></div>
+      <div class="field"><label>Texto</label><textarea data-biz="locText">${escHtml(contentOf("locText"))}</textarea></div>
+      ${cardRowsHtml("places")}
+    </div>
+
+    <div class="admin-section">
+      <h3>Experiencias</h3>
+      <div class="field"><label>Título</label><input type="text" data-biz="expTitle" value="${escAttr(contentOf("expTitle"))}"></div>
+      ${cardRowsHtml("experiences")}
+      <div class="hint">Si quitás todas las tarjetas, la sección se oculta.</div>
+    </div>
+
+    <div class="admin-section">
+      <h3>Testimonios</h3>
+      <div class="hint" style="margin-bottom:12px;">Usá solo comentarios reales de tus huéspedes (por ejemplo, de tus reseñas de Airbnb). Mientras no cargues ninguno, la sección no se muestra.</div>
+      ${testi}
+    </div>
+
+    <div class="admin-section">
+      <h3>Contacto</h3>
+      <div class="field"><label>Email (opcional)</label><input type="text" data-biz="email" value="${escAttr(b.email || "")}"></div>
+      <div class="field"><label>Instagram (opcional)</label><input type="text" data-biz="instagram" value="${escAttr(b.instagram || "")}" placeholder="@casitasatlantida o el link"></div>
+      <div class="field"><label>Dirección para el mapa</label><input type="text" data-biz="mapQuery" value="${escAttr(b.mapQuery || "")}" placeholder="${escAttr(b.location || "")}"><div class="hint">Si la dejás vacía, se usa la ubicación del negocio. Podés poner la calle y el número para que el mapa sea más preciso.</div></div>
+    </div>`;
+
+  const commit = async (reRender) => { renderContent(); await saveConfig(); if(reRender) renderContentTab(body); };
+  body.querySelectorAll("[data-biz]").forEach(i=>i.addEventListener("change", async ()=>{ b[i.dataset.biz] = i.value; await commit(false); }));
+  body.querySelectorAll("[data-biz-lines]").forEach(i=>i.addEventListener("change", async ()=>{
+    b[i.dataset.bizLines] = i.value.split("\n").map(s=>s.trim()).filter(Boolean); await commit(false);
+  }));
+  body.querySelector("#aboutFile").addEventListener("change", async e=>{
+    const f = e.target.files[0]; if(!f) return;
+    showToast("Subiendo foto…");
+    const url = await uploadPhoto(f, 1600);
+    if(!url) return;
+    b.aboutImage = url; await commit(true);
+  });
+  body.querySelectorAll("[data-card]").forEach(i=>i.addEventListener("change", async ()=>{
+    const [k, idx, f] = i.dataset.card.split(":");
+    listOf(k)[parseInt(idx)][f] = i.value; await commit(false);
+  }));
+  body.querySelectorAll("[data-card-img]").forEach(i=>i.addEventListener("change", async ()=>{
+    const f = i.files[0]; if(!f) return;
+    const [k, idx] = i.dataset.cardImg.split(":");
+    showToast("Subiendo foto…");
+    const url = await uploadPhoto(f, 1400);
+    if(!url) return;
+    listOf(k)[parseInt(idx)].image = url; await commit(true);
+  }));
+  body.querySelectorAll("[data-card-del]").forEach(btn=>btn.addEventListener("click", async ()=>{
+    const [k, idx] = btn.dataset.cardDel.split(":");
+    listOf(k).splice(parseInt(idx), 1); await commit(true);
+  }));
+  body.querySelectorAll("[data-card-add]").forEach(btn=>btn.addEventListener("click", async ()=>{
+    const k = btn.dataset.cardAdd;
+    listOf(k).push(k === "testimonials" ? { text:"", name:"" } : { title:"Nuevo", text:"", image:"" });
+    await commit(true);
+  }));
+}
+
 /* ---------- INIT ---------- */
 (async function init(){
   try{
     CONFIG = await fetchConfig();
     renderAll();
+    injectOrnaments();
   }catch(e){
     document.body.innerHTML = '<div style="padding:60px;text-align:center;font-family:sans-serif;">No se pudo conectar con el servidor. Si estás probando este archivo localmente, iniciá el backend primero (ver README).</div>';
   }
