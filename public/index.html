@@ -484,6 +484,30 @@
     .book-bar label{flex:1 1 45%; border-bottom:1px solid var(--line);}
     .hero{padding-top:110px;}
   }
+
+  /* ===== ajustes: portada y pie estilo posada ===== */
+  .hero-eyebrow:empty{display:none;}
+  .hero h1{max-width:980px;}
+  .hero p{font-size:20px; letter-spacing:.06em; margin-top:18px;}
+  .hero-tag{margin-top:38px; font-size:12px; letter-spacing:.28em; text-transform:uppercase; opacity:.92;}
+  .amen-cols{display:grid; grid-template-columns:1fr 1fr; gap:72px; max-width:1000px; margin:0 auto;}
+  .amen-cols h3{font-size:32px; font-weight:400; margin-bottom:10px;}
+  .amen-cols .amen-list{columns:1; max-width:none;}
+  .amen-note{text-align:center; margin-top:36px; font-size:15.5px; color:#5c6563; font-style:italic;}
+  .testi-more{text-align:center; margin-top:36px;}
+  .testi-more a{font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--ocean); border-bottom:1px solid var(--ocean); padding-bottom:3px;}
+  footer{padding:70px 0 34px;}
+  .footer-book{text-align:center; padding-bottom:48px; border-bottom:1px solid #3a4a4f; margin-bottom:28px;}
+  .footer-book .footer-brand{font-size:30px;}
+  .footer-sub{font-size:11.5px; letter-spacing:.24em; text-transform:uppercase; color:#aab8ba; margin:10px 0 28px;}
+  .footer-book .book-bar{margin:0 auto;}
+  .footer-links{display:flex; gap:28px; flex-wrap:wrap;}
+  .footer-links a{font-size:11.5px; letter-spacing:.16em; text-transform:uppercase; color:#cfd6d7;}
+  .footer-links a:hover{color:#fff;}
+  @media (max-width: 860px){
+    .amen-cols{grid-template-columns:1fr; gap:36px;}
+    .footer-simple{flex-direction:column; align-items:flex-start;}
+  }
 </style>
 </head>
 <body>
@@ -491,10 +515,10 @@
 <nav id="nav">
   <a href="#top" class="brand">Casitas Atlántida</a>
   <div class="links">
+    <a href="#top">Inicio</a>
     <a href="#casitas">Casitas</a>
-    <a href="#tarifas">Tarifas</a>
-    <a href="#ubicacion">Ubicación</a>
-    <a href="#pagos">Pagos</a>
+    <a href="#ubicacion">Locación</a>
+    <a href="#experiencias">Experiencias</a>
     <a href="#contacto">Contacto</a>
   </div>
   <a href="#" id="navCta" class="cta-nav">Reservas online</a>
@@ -506,23 +530,11 @@
     <h1 id="heroTitle">Cuatro casitas.<br>Un mismo horizonte.</h1>
     <p id="heroText">Alquiler temporal en Atlántida. Elegí la casita que mejor se adapta a tu grupo, revisá disponibilidad y reservá directo por WhatsApp.</p>
     <div class="hero-actions">
-      <a href="#casitas" class="btn btn-primary">Ver las casitas</a>
-      <a href="#" id="heroWhatsapp" class="btn btn-outline">Consultar por WhatsApp</a>
+      <a href="#" id="heroWhatsapp" class="btn btn-primary" target="_blank" rel="noopener">Reservas online</a>
     </div>
+    <div class="hero-tag" id="heroTag"></div>
   </div>
-  <div class="book-bar" id="bookBar">
-    <label>Check in<input type="date" id="bkIn"></label>
-    <label>Check out<input type="date" id="bkOut"></label>
-    <label>Huéspedes
-      <select id="bkGuests">
-        <option value="1">1</option><option value="2" selected>2</option><option value="3">3</option>
-        <option value="4">4</option><option value="5">5</option><option value="6">6</option>
-      </select>
-    </label>
-    <label>Casita<select id="bkCasa"><option value="">Cualquiera</option></select></label>
-    <button class="btn btn-dark" id="bkGo">Consultar</button>
-  </div>
-</header>
+  </header>
 
 <section class="section" id="sobre">
   <div class="container about-grid">
@@ -533,6 +545,52 @@
       <a href="#casitas" class="btn btn-dark">Ver las casitas</a>
     </div>
     <div class="about-img"><img id="aboutImg" alt=""></div>
+  </div>
+</section>
+
+<section class="section section-mist" id="comodidades">
+  <div class="container">
+    <div class="section-head">
+      <div class="section-eyebrow">· comodidades ·</div>
+      <h2>Todo lo que necesitás</h2>
+    </div>
+    <div class="amen-cols">
+      <div><h3>En cada casita</h3><ul class="amen-list" id="amenList"></ul></div>
+      <div><h3>En el exterior</h3><ul class="amen-list" id="amenExt"></ul></div>
+    </div>
+    <p class="amen-note" id="amenNote"></p>
+  </div>
+</section>
+
+<section class="section" id="ubicacion">
+  <div class="container">
+    <div class="section-head">
+      <div class="section-eyebrow">· locación ·</div>
+      <h2 id="locTitle"></h2>
+      <p id="locText"></p>
+    </div>
+    <div class="card-grid" id="placesGrid"></div>
+  </div>
+</section>
+
+<section class="section section-mist" id="experiencias">
+  <div class="container">
+    <div class="section-head">
+      <div class="section-eyebrow">· experiencias ·</div>
+      <h2 id="expTitle"></h2>
+    </div>
+    <div class="card-grid" id="expGrid"></div>
+  </div>
+</section>
+
+<section class="section" id="testimonios">
+  <div class="container">
+    <div class="section-head">
+      <div class="section-eyebrow">· huéspedes ·</div>
+      <h2>La voz de nuestros huéspedes</h2>
+    </div>
+    <div class="testi-grid" id="testiGrid"></div>
+    <p class="testi-more"><a id="testiMore" href="#" target="_blank" rel="noopener" style="display:none;">Leer más reseñas en Airbnb →</a></p>
   </div>
 </section>
 
@@ -596,17 +654,7 @@
   </div>
 </section>
 
-<section class="section" id="comodidades">
-  <div class="container">
-    <div class="section-head">
-      <div class="section-eyebrow">· comodidades ·</div>
-      <h2>Todo lo que necesitás</h2>
-    </div>
-    <ul class="amen-list" id="amenList"></ul>
-  </div>
-</section>
-
-<section class="section section-mist" id="tarifas">
+<section class="section" id="tarifas">
   <div class="container">
     <div class="section-head">
       <div class="section-eyebrow">· tarifas ·</div>
@@ -616,37 +664,6 @@
     <div id="seasonTable"></div>
     <p class="season-note" id="seasonNote"></p>
     <a href="#" id="tarifasWhatsapp" class="btn btn-whatsapp" style="margin-top:22px;" target="_blank" rel="noopener">Consultar disponibilidad y tarifa</a>
-  </div>
-</section>
-
-<section class="section" id="ubicacion">
-  <div class="container">
-    <div class="section-head">
-      <div class="section-eyebrow">· locación ·</div>
-      <h2 id="locTitle"></h2>
-      <p id="locText"></p>
-    </div>
-    <div class="card-grid" id="placesGrid"></div>
-  </div>
-</section>
-
-<section class="section section-mist" id="experiencias">
-  <div class="container">
-    <div class="section-head">
-      <div class="section-eyebrow">· experiencias ·</div>
-      <h2 id="expTitle"></h2>
-    </div>
-    <div class="card-grid" id="expGrid"></div>
-  </div>
-</section>
-
-<section class="section" id="testimonios">
-  <div class="container">
-    <div class="section-head">
-      <div class="section-eyebrow">· huéspedes ·</div>
-      <h2>La voz de nuestros huéspedes</h2>
-    </div>
-    <div class="testi-grid" id="testiGrid"></div>
   </div>
 </section>
 
@@ -679,10 +696,28 @@
   </div>
 </section>
 
-<footer>
-  <div class="container footer-simple">
-    <div class="footer-brand">Casitas Atlántida</div>
-    <div class="footer-bottom" style="border:none;padding:0;">© <span id="year"></span> Casitas Atlántida · Reservas directas, sin intermediarios</div>
+<footer id="reservas">
+  <div class="container">
+    <div class="footer-book">
+      <div class="footer-brand">Casitas Atlántida</div>
+      <p class="footer-sub">Consultá disponibilidad</p>
+      <div class="book-bar" id="bookBar">
+    <label>Check in<input type="date" id="bkIn"></label>
+    <label>Check out<input type="date" id="bkOut"></label>
+    <label>Huéspedes
+      <select id="bkGuests">
+        <option value="1">1</option><option value="2" selected>2</option><option value="3">3</option>
+        <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+      </select>
+    </label>
+    <label>Casita<select id="bkCasa"><option value="">Cualquiera</option></select></label>
+    <button class="btn btn-dark" id="bkGo">Consultar</button>
+  </div>
+    </div>
+    <div class="footer-simple">
+      <div class="footer-links"><a href="#casitas">Casitas</a><a href="#tarifas">Tarifas</a><a href="#pagos">Medios de pago</a><a href="#contacto">Contacto</a></div>
+      <div class="footer-bottom" style="border:none;padding:0;">© <span id="year"></span> Casitas Atlántida · Reservas directas, sin intermediarios</div>
+    </div>
   </div>
 </footer>
 
@@ -721,11 +756,20 @@ let CONFIG = null;
 let state = { openCasitaId:null, carouselIndex:0, sectionFilter:-1, calYear:null, calMonth:null, adminUnlocked:false, adminTab:"casitas", adminCasa:null };
 const DEFAULT_HERO = "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&w=2000&q=80";
 const DEFAULT_HERO_TEXT = {
+  heroEyebrow: "",
+  heroTitle: "Tu descanso junto al mar en Casitas Atlántida",
+  heroText: "Disponible Verano 26/27"
+};
+// textos que traía la versión anterior: si siguen guardados tal cual, se usan los nuevos
+const OLD_HERO_TEXT = {
   heroEyebrow: "Atlántida, Canelones — frente al mar",
   heroTitle: "Cuatro casitas.\nUn mismo horizonte.",
   heroText: "Alquiler temporal en Atlántida. Elegí la casita que mejor se adapta a tu grupo, revisá disponibilidad y reservá directo por WhatsApp."
 };
-function heroTextOf(key){ const v = CONFIG.business[key]; return typeof v === "string" ? v : DEFAULT_HERO_TEXT[key]; }
+function heroTextOf(key){
+  const v = CONFIG.business[key];
+  return (typeof v === "string" && v !== OLD_HERO_TEXT[key]) ? v : DEFAULT_HERO_TEXT[key];
+}
 
 function authHeader(){
   return { "x-admin-password": sessionStorage.getItem("adminAuth") || "" };
@@ -1170,7 +1214,22 @@ const DEFAULT_CONTENT = {
   aboutTitle: "Un descanso junto al mar",
   aboutText: "Ubicadas a pocas cuadras de la playa, en un entorno residencial tranquilo y con una plaza frente al predio, nuestras casitas ofrecen comodidad, privacidad y servicios para disfrutar de una estadía placentera en Atlántida.\n\nCada casita tiene dos dormitorios, jardín privado con parrillero y todo lo necesario para sentirte como en casa.",
   aboutImage: UNS + "1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80",
-  comodidades: DEFAULT_AMENITIES,
+  comodidades: [
+    "Dos dormitorios",
+    "Aire acondicionado",
+    "Smart TV con acceso a plataformas de streaming",
+    "Conexión Wi-Fi",
+    "Ropa de cama incluida"
+  ],
+  exterior: [
+    "Jardín privado con parrillero",
+    "Mobiliario exterior",
+    "Ducha al aire libre con agua fría y caliente",
+    "Estacionamiento privado, dentro de un predio cerrado",
+    "Servicio de playa en verano: sillas y sombrilla",
+    "Estación de carga gratuita para vehículos eléctricos"
+  ],
+  comodNota: "Importante: los huéspedes deberán traer sus propias toallas personales.",
   locTitle: "Atlántida",
   locText: "Un tranquilo balneario de la costa de Canelones, ideal para descansar a pocas cuadras del mar.",
   places: [
@@ -1211,8 +1270,12 @@ function renderContent(){
   document.getElementById("aboutImg").src = contentOf("aboutImage") || DEFAULT_CONTENT.aboutImage;
   // comodidades (sin el emoji inicial, para un look más sobrio)
   const am = Array.isArray(contentOf("comodidades")) ? contentOf("comodidades") : [];
-  document.getElementById("amenList").innerHTML = am.map(a=>"<li>" + escHtml(String(a).replace(/^[^\p{L}\p{N}]+/u, "")) + "</li>").join("");
-  document.getElementById("comodidades").style.display = am.length ? "" : "none";
+  const amx = Array.isArray(contentOf("exterior")) ? contentOf("exterior") : [];
+  const li = a => "<li>" + escHtml(String(a).replace(/^[^\p{L}\p{N}]+/u, "")) + "</li>";
+  document.getElementById("amenList").innerHTML = am.map(li).join("");
+  document.getElementById("amenExt").innerHTML = amx.map(li).join("");
+  document.getElementById("amenNote").textContent = contentOf("comodNota") || "";
+  document.getElementById("comodidades").style.display = (am.length || amx.length) ? "" : "none";
   // tarjetas
   const cards = arr => arr.map(it=>`<div class="info-card">${it.image ? `<img src="${escAttr(it.image)}" alt="${escAttr(it.title)}" loading="lazy">` : ""}<h3>${escHtml(it.title || "")}</h3><p>${escHtml(it.text || "")}</p></div>`).join("");
   document.getElementById("locTitle").textContent = contentOf("locTitle");
@@ -1225,6 +1288,10 @@ function renderContent(){
   const ts = (Array.isArray(contentOf("testimonials")) ? contentOf("testimonials") : []).filter(t=>t.text);
   document.getElementById("testiGrid").innerHTML = ts.map(t=>`<div class="testi"><blockquote>“${escHtml(t.text)}”</blockquote><cite>${escHtml(t.name || "")}</cite></div>`).join("");
   document.getElementById("testimonios").style.display = ts.length ? "" : "none";
+  const abCasa = CONFIG.casitas.find(c=>c.airbnbUrl);
+  const more = document.getElementById("testiMore");
+  more.style.display = abCasa ? "" : "none";
+  if(abCasa) more.href = abCasa.airbnbUrl;
   // contacto
   const wa = document.getElementById("footerWhatsapp");
   wa.textContent = "+" + b.whatsappNumber;
@@ -1867,6 +1934,9 @@ function renderHero(){
   document.getElementById("heroEyebrow").textContent = heroTextOf("heroEyebrow");
   document.getElementById("heroTitle").innerHTML = escHtml(heroTextOf("heroTitle")).replace(/\n/g, "<br>");
   document.getElementById("heroText").textContent = heroTextOf("heroText");
+  const loc = (CONFIG.business.location || "").split(",").map(s=>s.trim()).filter(Boolean);
+  const tag = loc.length > 1 ? loc[0] + ", " + loc[loc.length - 1] : (loc[0] || "");
+  document.getElementById("heroTag").textContent = tag ? "· " + tag.toLowerCase() + " ·" : "";
 }
 function spotifyEmbed(url){
   const m = String(url || "").match(/open\.spotify\.com\/(?:intl-[a-z]{2}\/)?(track|album|playlist|episode|show|artist)\/([A-Za-z0-9]+)/);
@@ -1978,7 +2048,9 @@ function renderContentTab(body){
 
     <div class="admin-section">
       <h3>Comodidades</h3>
-      <div class="field"><textarea data-biz-lines="comodidades" style="min-height:160px;">${(Array.isArray(contentOf("comodidades")) ? contentOf("comodidades") : []).map(escHtml).join("\n")}</textarea><div class="hint">Una por línea. Si la dejás vacía, la sección se oculta.</div></div>
+      <div class="field"><label>En cada casita (una por línea)</label><textarea data-biz-lines="comodidades" style="min-height:120px;">${(Array.isArray(contentOf("comodidades")) ? contentOf("comodidades") : []).map(escHtml).join("\n")}</textarea></div>
+      <div class="field"><label>En el exterior (una por línea)</label><textarea data-biz-lines="exterior" style="min-height:140px;">${(Array.isArray(contentOf("exterior")) ? contentOf("exterior") : []).map(escHtml).join("\n")}</textarea></div>
+      <div class="field"><label>Nota</label><input type="text" data-biz="comodNota" value="${escAttr(contentOf("comodNota"))}"><div class="hint">Si dejás las dos listas vacías, la sección se oculta.</div></div>
     </div>
 
     <div class="admin-section">
@@ -1999,6 +2071,12 @@ function renderContentTab(body){
       <h3>Testimonios</h3>
       <div class="hint" style="margin-bottom:12px;">Usá solo comentarios reales de tus huéspedes (por ejemplo, de tus reseñas de Airbnb). Mientras no cargues ninguno, la sección no se muestra.</div>
       ${testi}
+      <div class="field" style="margin-top:18px;">
+        <label>Pegar varios comentarios de una vez</label>
+        <textarea id="bulkTesti" style="min-height:130px;" placeholder="Excelente lugar, muy limpio y tranquilo.&#10;— María&#10;&#10;Volveremos el próximo verano.&#10;— Juan"></textarea>
+        <div class="hint">Separá cada comentario con una línea en blanco. Si la última línea empieza con —, se toma como el nombre.</div>
+      </div>
+      <button class="btn btn-ghost" id="bulkTestiBtn" style="width:100%;padding:11px;font-size:12px;">Agregar los comentarios pegados</button>
     </div>
 
     <div class="admin-section">
@@ -2036,6 +2114,20 @@ function renderContentTab(body){
     const [k, idx] = btn.dataset.cardDel.split(":");
     listOf(k).splice(parseInt(idx), 1); await commit(true);
   }));
+  body.querySelector("#bulkTestiBtn").addEventListener("click", async ()=>{
+    const raw = body.querySelector("#bulkTesti").value.trim();
+    if(!raw) return;
+    const list = listOf("testimonials");
+    raw.split(/\n\s*\n/).forEach(block=>{
+      const lines = block.split("\n").map(s=>s.trim()).filter(Boolean);
+      if(!lines.length) return;
+      let name = "";
+      const last = lines[lines.length - 1];
+      if(lines.length > 1 && /^[—–-]\s*/.test(last)){ name = last.replace(/^[—–-]\s*/, ""); lines.pop(); }
+      list.push({ text: lines.join(" "), name });
+    });
+    await commit(true);
+  });
   body.querySelectorAll("[data-card-add]").forEach(btn=>btn.addEventListener("click", async ()=>{
     const k = btn.dataset.cardAdd;
     listOf(k).push(k === "testimonials" ? { text:"", name:"" } : { title:"Nuevo", text:"", image:"" });
