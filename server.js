@@ -37,6 +37,8 @@ app.use(cors());
 app.use(express.json({ limit: "2mb" }));
 app.use("/uploads", express.static(UPLOAD_DIR));
 app.use(express.static(PUBLIC_DIR));
+// La página de reservas es una vista del mismo sitio: /reservar entrega el mismo archivo.
+app.get("/reservar", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "index.html")));
 
 /* ---------- configuración en disco ---------- */
 function readConfig() {
