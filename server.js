@@ -19,6 +19,7 @@ const path = require("path");
 const crypto = require("crypto");
 
 const app = express();
+app.set("trust proxy", 1);
 const PORT = process.env.PORT || 3000;
 
 const SEED_FILE = path.join(__dirname, "data", "config.json");
@@ -39,6 +40,11 @@ app.use("/uploads", express.static(UPLOAD_DIR));
 app.use(express.static(PUBLIC_DIR));
 // La página de reservas es una vista del mismo sitio: /reservar entrega el mismo archivo.
 app.get("/reservar", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "index.html")));
+// /admin abre el sitio con el panel del propietario (pide contraseña). No se indexa en buscadores.
+app.get("/admin", (req, res) => {
+  res.set("X-Robots-Tag", "noindex, nofollow");
+  res.sendFile(path.join(PUBLIC_DIR, "index.html"));
+});
 
 /* ---------- configuración en disco ---------- */
 function readConfig() {
@@ -99,10 +105,30 @@ function safeEqual(a, b) {
   const A = Buffer.from(String(a)), B = Buffer.from(String(b));
   return A.length === B.length && crypto.timingSafeEqual(A, B);
 }
+// Máximo 10 contraseñas incorrectas cada 15 minutos por dirección.
+const failedLogins = new Map();
+const WINDOW_MS = 15 * 60 * 1000, MAX_FAILS = 10;
+function isBlocked(ip) {
+  const r = failedLogins.get(ip);
+  return !!r && Date.now() < r.reset && r.n >= MAX_FAILS;
+}
+function noteFail(ip) {
+  const now = Date.now();
+  const r = failedLogins.get(ip);
+  if (!r || now >= r.reset) failedLogins.set(ip, { n: 1, reset: now + WINDOW_MS });
+  else r.n++;
+}
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, r] of failedLogins) if (now >= r.reset) failedLogins.delete(ip);
+}, 10 * 60 * 1000).unref();
+
 function checkAuth(req, res, next) {
+  if (isBlocked(req.ip)) return res.status(429).json({ error: "Demasiados intentos. Probá de nuevo en unos minutos." });
   const cfg = readConfig();
   const provided = req.header("x-admin-password");
   if (provided && safeEqual(provided, cfg.business.adminPassword)) return next();
+  noteFail(req.ip);
   return res.status(401).json({ error: "No autorizado" });
 }
 
@@ -205,9 +231,11 @@ app.get("/api/config", (req, res) => {
 });
 
 app.post("/api/admin/login", (req, res) => {
+  if (isBlocked(req.ip)) return res.status(429).json({ ok: false, error: "Demasiados intentos. Probá de nuevo en unos minutos." });
   const cfg = readConfig();
   const { password } = req.body || {};
   if (password && safeEqual(password, cfg.business.adminPassword)) return res.json({ ok: true });
+  noteFail(req.ip);
   res.status(401).json({ ok: false });
 });
 
@@ -324,6 +352,27 @@ const uploadAudio = multer({
 app.post("/api/upload-audio", checkAuth, uploadAudio.single("audio"), (req, res) => {
   if (!req.file) return res.status(400).json({ error: "No se recibió ningún audio" });
   res.json({ url: "/uploads/" + req.file.filename });
+});
+
+// Videos: MP4 (H.264) recomendado. Tope de 90 MB para que el servicio de hosting no los rechace.
+const uploadVideo = multer({
+  storage,
+  limits: { fileSize: 90 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith("video/")) return cb(new Error("Solo se permiten videos (MP4 recomendado)"));
+    cb(null, true);
+  },
+});
+
+app.post("/api/upload-video", checkAuth, (req, res) => {
+  uploadVideo.single("video")(req, res, (err) => {
+    if (err) {
+      const msg = err.code === "LIMIT_FILE_SIZE" ? "El video pesa más de 90 MB. Comprimilo o acortalo y probá de nuevo." : (err.message || "Error al subir el video");
+      return res.status(400).json({ error: msg });
+    }
+    if (!req.file) return res.status(400).json({ error: "No se recibió ningún video" });
+    res.json({ url: "/uploads/" + req.file.filename });
+  });
 });
 
 app.use((err, req, res, next) => {

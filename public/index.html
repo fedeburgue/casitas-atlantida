@@ -328,6 +328,32 @@
     transition:transform .2s;
   }
   #adminFab:hover{transform:scale(1.06);}
+  #adminFab{display:none; bottom:96px;}
+  body.admin-on #adminFab{display:flex;}
+
+  /* VIDEO DE PORTADA */
+  .hero-video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0; display:none; background:#0d1416;}
+  .hero::before{z-index:1;}
+
+  /* VIDEO DE LAS CASAS */
+  .section-video{background:var(--ink); color:#fff; padding:96px 0;}
+  .section-video .section-eyebrow{color:rgba(255,255,255,.7);}
+  .section-video h2{color:#fff;}
+  .video-frame{max-width:1040px; margin:36px auto 0; background:#000; aspect-ratio:16/9; overflow:hidden;}
+  .video-frame video{width:100%; height:100%; display:block; object-fit:contain; background:#000;}
+
+  /* BOTÓN FLOTANTE DE WHATSAPP */
+  .wa-float{
+    position:fixed; right:22px; bottom:22px; z-index:290;
+    width:58px; height:58px; border-radius:50%; background:#25D366; color:#fff;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 8px 24px rgba(0,0,0,.28); transition:transform .2s;
+  }
+  .wa-float:hover{transform:scale(1.07);}
+  .wa-float svg{width:32px; height:32px; fill:#fff;}
+  .wa-float[hidden]{display:none;}
+  .video-progress{height:6px; background:var(--line); margin-top:8px; display:none;}
+  .video-progress > div{height:100%; width:0; background:var(--ink); transition:width .15s;}
   #adminOverlay{
     position:fixed; inset:0; background:rgba(15,18,20,.55); backdrop-filter:blur(2px); z-index:400; display:none;
     align-items:stretch; justify-content:flex-end;
@@ -567,6 +593,7 @@
 </nav>
 
 <header class="hero home-only" id="top">
+  <video class="hero-video" id="heroVideo" muted loop playsinline autoplay preload="auto" aria-hidden="true"></video>
   <div class="hero-inner">
     <div class="hero-eyebrow" id="heroEyebrow">Atlántida, Canelones — frente al mar</div>
     <h1 id="heroTitle">Cuatro casitas.<br>Un mismo horizonte.</h1>
@@ -623,6 +650,16 @@
     </div>
     <div class="testi-grid" id="testiGrid"></div>
     <p class="testi-more"><a id="testiMore" href="#" target="_blank" rel="noopener" style="display:none;">Leer más reseñas en Airbnb →</a></p>
+  </div>
+</section>
+
+<section class="section-video home-only" id="videoCasas" style="display:none;">
+  <div class="container">
+    <div class="section-head">
+      <div class="section-eyebrow">conocé el lugar</div>
+      <h2 id="videoCasasTitle">Conocé las casitas</h2>
+    </div>
+    <div class="video-frame"><video id="casasVideo" controls playsinline preload="metadata"></video></div>
   </div>
 </section>
 
@@ -775,6 +812,10 @@
 <audio id="bgm" loop preload="none"></audio>
 <button id="musicBtn" aria-label="Música de fondo">♪ Música</button>
 <div id="spotifyPanel"><iframe id="spotifyFrame" title="Reproductor de Spotify" width="100%" height="152" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe></div>
+
+<a id="waFloat" class="wa-float" href="#" target="_blank" rel="noopener" aria-label="Escribinos por WhatsApp" title="Escribinos por WhatsApp" hidden>
+  <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16.003 3C8.83 3 3 8.83 3 16c0 2.29.6 4.52 1.74 6.49L3 29l6.68-1.75A12.94 12.94 0 0 0 16 29c7.17 0 13-5.83 13-13S23.17 3 16.003 3zm0 23.7c-1.95 0-3.86-.52-5.53-1.51l-.4-.24-3.96 1.04 1.06-3.86-.26-.4A10.7 10.7 0 0 1 5.3 16c0-5.9 4.8-10.7 10.7-10.7S26.7 10.1 26.7 16 21.9 26.7 16 26.7zm5.87-8.01c-.32-.16-1.9-.94-2.2-1.04-.29-.11-.5-.16-.72.16-.21.32-.83 1.04-1.02 1.26-.19.21-.37.24-.7.08-.32-.16-1.36-.5-2.59-1.6-.96-.85-1.6-1.9-1.79-2.22-.19-.32-.02-.5.14-.66.14-.14.32-.37.48-.56.16-.19.21-.32.32-.54.11-.21.05-.4-.03-.56-.08-.16-.72-1.74-.99-2.38-.26-.62-.52-.54-.72-.55h-.61c-.21 0-.56.08-.85.4-.29.32-1.12 1.1-1.12 2.68s1.15 3.11 1.31 3.32c.16.21 2.26 3.45 5.47 4.84.76.33 1.36.53 1.82.68.77.24 1.46.21 2.01.13.61-.09 1.9-.78 2.17-1.53.27-.75.27-1.39.19-1.53-.08-.13-.29-.21-.61-.37z"/></svg>
+</a>
 
 <button id="adminFab" title="Panel del propietario">⚙</button>
 
@@ -941,6 +982,45 @@ async function uploadAudio(file){
   }
   const data = await res.json();
   return data.url;
+}
+
+function uploadVideo(file, onProgress){
+  return new Promise(resolve=>{
+    const okType = /^video\//.test(file.type) || /\.(mp4|mov|webm|m4v)$/i.test(file.name);
+    if(!okType){ showToast("Ese archivo no es un video (usá MP4)", true); return resolve(null); }
+    if(file.size > 90 * 1024 * 1024){
+      showToast("El video pesa " + Math.round(file.size/1048576) + " MB. El máximo es 90 MB: comprimilo o acortalo.", true);
+      return resolve(null);
+    }
+    const form = new FormData();
+    form.append("video", file);
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", API + "/api/upload-video");
+    const h = authHeader();
+    Object.keys(h).forEach(k=>xhr.setRequestHeader(k, h[k]));
+    xhr.upload.onprogress = e=>{ if(e.lengthComputable && onProgress) onProgress(Math.round(e.loaded / e.total * 100)); };
+    xhr.onload = ()=>{
+      let data = {};
+      try{ data = JSON.parse(xhr.responseText); }catch(e){}
+      if(xhr.status >= 200 && xhr.status < 300 && data.url) return resolve(data.url);
+      showToast(data.error || (xhr.status === 413 ? "El video es demasiado grande" : "No se pudo subir el video"), true);
+      resolve(null);
+    };
+    xhr.onerror = ()=>{ showToast("Se cortó la conexión al subir el video", true); resolve(null); };
+    xhr.send(form);
+  });
+}
+function checkPlayable(url){
+  return new Promise(resolve=>{
+    const v = document.createElement("video");
+    let done = false;
+    const end = ok=>{ if(!done){ done = true; resolve(ok); } };
+    v.preload = "metadata";
+    v.onloadedmetadata = ()=>end(true);
+    v.onerror = ()=>end(false);
+    setTimeout(()=>end(true), 8000);
+    v.src = url;
+  });
 }
 
 /* ---------- NAV ---------- */
@@ -1440,12 +1520,14 @@ function goReserve(params){
   route();
   try{ window.scrollTo(0, 0); }catch(e){}
 }
+function pageIsAdmin(){ return location.pathname.replace(/\/+$/, "") === "/admin"; }
 function route(){
   const reserve = pageIsReserve();
+  if(pageIsAdmin() && !adminOverlay.classList.contains("open")){ adminOverlay.classList.add("open"); renderAdmin(); }
   document.body.classList.toggle("view-reserve", reserve);
   document.getElementById("nav").classList.toggle("scrolled", reserve || window.scrollY > 60);
   if(reserve){ initReserve(); document.title = "Reservas online — " + CONFIG.business.name; }
-  else document.title = CONFIG.business.name + " — Alquiler temporal frente al mar";
+  else document.title = CONFIG.business.name + (pageIsAdmin() ? " — Panel" : " — Alquiler temporal frente al mar");
 }
 function initReserve(){
   const sp = new URLSearchParams(location.search);
@@ -1601,6 +1683,8 @@ function renderAll(){
   renderContent();
   renderBookBar();
   renderHero();
+  renderVideos();
+  renderWaFloat();
   renderMusic();
   renderLineup();
   renderPayments();
@@ -1624,6 +1708,27 @@ document.getElementById("adminClose").addEventListener("click", ()=>{
   adminOverlay.classList.remove("open");
 });
 
+function setAdminOn(on){
+  state.adminUnlocked = on;
+  document.body.classList.toggle("admin-on", on);
+}
+function adminLogout(){
+  try{ sessionStorage.removeItem("adminAuth"); }catch(e){}
+  setAdminOn(false);
+  adminOverlay.classList.remove("open");
+  showToast("Sesión cerrada");
+}
+async function tryRestoreAdmin(){
+  let pw = "";
+  try{ pw = sessionStorage.getItem("adminAuth") || ""; }catch(e){}
+  if(!pw) return;
+  try{
+    const res = await fetch(API + "/api/admin/login", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({password: pw}) });
+    if(res.ok) setAdminOn(true);
+    else { try{ sessionStorage.removeItem("adminAuth"); }catch(e){} }
+  }catch(e){}
+}
+
 function renderAdmin(){
   if(!state.adminUnlocked){
     adminContent.innerHTML = `
@@ -1641,6 +1746,7 @@ function renderAdmin(){
   adminContent.innerHTML = `
     <h2>Panel del propietario</h2>
     <p class="sub">Los cambios se guardan directamente en el servidor: se ven al instante para cualquiera que entre al sitio, no hace falta copiar ni pegar nada.</p>
+    <button class="btn btn-ghost" id="adminLogout" style="padding:8px 14px;font-size:12px;margin-bottom:14px;">Cerrar sesión</button>
     <div class="admin-tabs" id="adminTabs">
       <button data-tab="casitas">Casitas</button>
       <button data-tab="fotos">Fotos</button>
@@ -1654,6 +1760,7 @@ function renderAdmin(){
     </div>
     <div id="adminTabBody"></div>
   `;
+  document.getElementById("adminLogout").addEventListener("click", adminLogout);
   const tabs = document.getElementById("adminTabs");
   tabs.querySelectorAll("button").forEach(b=>{
     if(b.dataset.tab === state.adminTab) b.classList.add("active");
@@ -1669,8 +1776,10 @@ async function doLogin(){
   });
   if(res.ok){
     sessionStorage.setItem("adminAuth", val);
-    state.adminUnlocked = true;
+    setAdminOn(true);
     renderAdmin();
+  } else if(res.status === 429){
+    showToast("Demasiados intentos. Esperá unos minutos y probá de nuevo.", true);
   } else {
     showToast("Contraseña incorrecta", true);
   }
@@ -2072,6 +2181,31 @@ function renderCoverTab(body){
       <button class="btn btn-ghost" id="logoReset" style="width:100%;padding:11px;font-size:13px;">Volver al logo original</button>
     </div>
 
+    <div class="admin-section" id="heroVideoDrop">
+      <h3>Video de portada</h3>
+      <p class="sub">Si cargás un video, reemplaza a la imagen principal: se reproduce solo, en bucle y sin sonido. Mejor corto (10 a 30 segundos), horizontal, en formato MP4 (H.264) y de hasta 90 MB. Los .mov del iPhone a veces no se ven en todos los navegadores: si pasa, exportalo como MP4.</p>
+      ${b.heroVideo ? `<video src="${escAttr(b.heroVideo)}" muted loop playsinline controls style="width:100%;max-height:200px;background:#000;margin-bottom:10px;"></video>` : ""}
+      <div class="field">
+        <input type="file" accept="video/*,.mp4,.mov,.m4v,.webm" id="heroVideoFile">
+        <div class="hint">También podés arrastrar el video desde tu Mac sobre este bloque.</div>
+        <div class="video-progress" id="heroVideoBar"><div></div></div>
+      </div>
+      <button class="btn btn-ghost" id="heroVideoRemove" style="width:100%;padding:11px;font-size:13px;">Quitar video (vuelve la imagen)</button>
+    </div>
+
+    <div class="admin-section" id="casasVideoDrop">
+      <h3>Video de las casas (antes de las casitas)</h3>
+      <p class="sub">Aparece como una sección propia, con controles de reproducción, justo antes de las casitas. Si no cargás ninguno, la sección no se muestra.</p>
+      ${b.casasVideo ? `<video src="${escAttr(b.casasVideo)}" controls playsinline style="width:100%;max-height:200px;background:#000;margin-bottom:10px;"></video>` : ""}
+      <div class="field"><label>Título de la sección</label><input type="text" id="casasVideoTitle" value="${escAttr(b.casasVideoTitle || "")}" placeholder="Conocé las casitas"></div>
+      <div class="field">
+        <input type="file" accept="video/*,.mp4,.mov,.m4v,.webm" id="casasVideoFile">
+        <div class="hint">MP4 de hasta 90 MB. También podés arrastrarlo sobre este bloque.</div>
+        <div class="video-progress" id="casasVideoBar"><div></div></div>
+      </div>
+      <button class="btn btn-ghost" id="casasVideoRemove" style="width:100%;padding:11px;font-size:13px;">Quitar video</button>
+    </div>
+
     <div class="admin-section" id="heroDrop">
       <h3>Imagen principal de la página</h3>
       <div class="thumb-row"><img src="${escAttr(b.heroImage || DEFAULT_HERO)}" style="width:200px;height:112px;" alt=""></div>
@@ -2146,6 +2280,34 @@ function renderCoverTab(body){
     if(!url) return;
     b.heroImage = url; await apply();
   });
+  const videoSlot = (key, dropSel, fileSel, barSel) => {
+    const bar = body.querySelector(barSel);
+    const go = async f => {
+      if(!f) return;
+      bar.style.display = "block"; bar.firstElementChild.style.width = "0";
+      showToast("Subiendo video… no cierres esta ventana");
+      const url = await uploadVideo(f, pct=>{ bar.firstElementChild.style.width = pct + "%"; });
+      bar.style.display = "none";
+      if(!url) return;
+      const ok = await checkPlayable(url);
+      if(!ok) showToast("El video se subió pero este navegador no puede reproducirlo. Probá exportarlo como MP4 (H.264).", true);
+      b[key] = url; await apply();
+    };
+    body.querySelector(fileSel).addEventListener("change", e=>go(e.target.files[0]));
+    const drop = body.querySelector(dropSel);
+    ["dragenter","dragover"].forEach(ev=>drop.addEventListener(ev, e=>{ if(!hasFiles(e)) return; e.preventDefault(); e.stopPropagation(); drop.classList.add("drag"); }));
+    drop.addEventListener("dragleave", e=>{ if(!drop.contains(e.relatedTarget)) drop.classList.remove("drag"); });
+    drop.addEventListener("drop", e=>{
+      if(!hasFiles(e)) return;
+      e.preventDefault(); e.stopPropagation(); drop.classList.remove("drag");
+      go(e.dataTransfer.files[0]);
+    });
+  };
+  videoSlot("heroVideo", "#heroVideoDrop", "#heroVideoFile", "#heroVideoBar");
+  videoSlot("casasVideo", "#casasVideoDrop", "#casasVideoFile", "#casasVideoBar");
+  body.querySelector("#heroVideoRemove").addEventListener("click", async ()=>{ b.heroVideo = ""; await apply(); });
+  body.querySelector("#casasVideoRemove").addEventListener("click", async ()=>{ b.casasVideo = ""; await apply(); });
+  body.querySelector("#casasVideoTitle").addEventListener("change", async e=>{ b.casasVideoTitle = e.target.value.trim(); await apply(); });
   body.querySelector("#heroUrl").addEventListener("change", async e=>{ b.heroImage = e.target.value.trim(); await apply(); });
   body.querySelector("#heroReset").addEventListener("click", async ()=>{ b.heroImage = ""; await apply(); });
   body.querySelector("#musicFile").addEventListener("change", async e=>{
@@ -2161,6 +2323,42 @@ function renderCoverTab(body){
 }
 
 /* ---------- PORTADA Y MÚSICA EN EL SITIO ---------- */
+function setVideo(el, url){
+  if(url){
+    if(el.getAttribute("src") !== url){
+      el.onerror = ()=>{ el.style.display = "none"; };
+      el.src = url;
+    }
+    el.style.display = "block";
+    return true;
+  }
+  el.removeAttribute("src");
+  try{ el.load(); }catch(e){}
+  el.style.display = "none";
+  return false;
+}
+function renderWaFloat(){
+  const a = document.getElementById("waFloat");
+  const n = String(CONFIG.business.whatsappNumber || "").replace(/\D/g, "");
+  if(!n){ a.hidden = true; return; }
+  a.href = waLink("Hola! Quiero consultar disponibilidad en " + CONFIG.business.name + ".");
+  a.hidden = false;
+}
+function renderVideos(){
+  const b = CONFIG.business;
+  const hv = document.getElementById("heroVideo");
+  if(setVideo(hv, b.heroVideo)){ const pr = hv.play(); if(pr && pr.catch) pr.catch(()=>{}); }
+  const sec = document.getElementById("videoCasas");
+  const cv = document.getElementById("casasVideo");
+  document.getElementById("videoCasasTitle").textContent = b.casasVideoTitle || "Conocé las casitas";
+  if(b.casasVideo){
+    sec.style.display = "";
+    if(cv.getAttribute("src") !== b.casasVideo) cv.src = b.casasVideo;
+  } else {
+    sec.style.display = "none";
+    if(cv.getAttribute("src")){ cv.pause(); cv.removeAttribute("src"); try{ cv.load(); }catch(e){} }
+  }
+}
 function renderHero(){
   const hero = document.getElementById("top");
   const img = CONFIG.business.heroImage;
@@ -2217,7 +2415,7 @@ function renderMusic(){
   if(b.musicAutoOnTouch && !musicAutoBound){
     musicAutoBound = true;
     const start = e => {
-      if(e.target.closest && e.target.closest("#musicBtn, #adminFab, #adminOverlay")) return;
+      if(e.target.closest && e.target.closest("#musicBtn, #adminFab, #adminOverlay, #waFloat")) return;
       document.removeEventListener("pointerdown", start);
       if(CONFIG.business.musicAutoOnTouch && btn.dataset.mode === "mp3" && audio.paused && audio.getAttribute("src")) audio.play().catch(()=>{});
     };
@@ -2368,6 +2566,7 @@ function renderContentTab(body){
 (async function init(){
   try{
     CONFIG = await fetchConfig();
+    await tryRestoreAdmin();
     renderAll();
     route();
   }catch(e){
