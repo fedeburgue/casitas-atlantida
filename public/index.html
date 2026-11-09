@@ -441,7 +441,7 @@
   .section-head p{font-size:16.5px; color:#5c6563;}
 
   /* sobre nosotros */
-  .about-grid{display:grid; grid-template-columns:1fr 1fr; gap:80px; align-items:center;}
+  .about-grid{display:block; max-width:760px; text-align:center;}
   .about-text h2{font-size:clamp(36px,4.6vw,60px); font-weight:400; line-height:1.04; margin:14px 0 24px;}
   .about-text p{font-size:17px; line-height:1.75; color:#4f5857; margin-bottom:18px;}
   .about-text .btn{margin-top:14px;}
@@ -613,7 +613,6 @@
       <div id="aboutBody"></div>
       <a href="#casitas" class="btn btn-dark">Ver las casitas</a>
     </div>
-    <div class="about-img"><img id="aboutImg" alt=""></div>
   </div>
 </section>
 
@@ -804,9 +803,6 @@
   </div>
 </footer>
 
-<audio id="bgm" loop preload="none"></audio>
-<button id="musicBtn" aria-label="Música de fondo">♪ Música</button>
-<div id="spotifyPanel"><iframe id="spotifyFrame" title="Reproductor de Spotify" width="100%" height="152" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe></div>
 
 <a id="waFloat" class="wa-float" href="#" target="_blank" rel="noopener" aria-label="Escribinos por WhatsApp" title="Escribinos por WhatsApp" hidden>
   <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16.003 3C8.83 3 3 8.83 3 16c0 2.29.6 4.52 1.74 6.49L3 29l6.68-1.75A12.94 12.94 0 0 0 16 29c7.17 0 13-5.83 13-13S23.17 3 16.003 3zm0 23.7c-1.95 0-3.86-.52-5.53-1.51l-.4-.24-3.96 1.04 1.06-3.86-.26-.4A10.7 10.7 0 0 1 5.3 16c0-5.9 4.8-10.7 10.7-10.7S26.7 10.1 26.7 16 21.9 26.7 16 26.7zm5.87-8.01c-.32-.16-1.9-.94-2.2-1.04-.29-.11-.5-.16-.72.16-.21.32-.83 1.04-1.02 1.26-.19.21-.37.24-.7.08-.32-.16-1.36-.5-2.59-1.6-.96-.85-1.6-1.9-1.79-2.22-.19-.32-.02-.5.14-.66.14-.14.32-.37.48-.56.16-.19.21-.32.32-.54.11-.21.05-.4-.03-.56-.08-.16-.72-1.74-.99-2.38-.26-.62-.52-.54-.72-.55h-.61c-.21 0-.56.08-.85.4-.29.32-1.12 1.1-1.12 2.68s1.15 3.11 1.31 3.32c.16.21 2.26 3.45 5.47 4.84.76.33 1.36.53 1.82.68.77.24 1.46.21 2.01.13.61-.09 1.9-.78 2.17-1.53.27-.75.27-1.39.19-1.53-.08-.13-.29-.21-.61-.37z"/></svg>
@@ -1387,7 +1383,6 @@ function renderContent(){
   document.getElementById("aboutTitle").textContent = contentOf("aboutTitle");
   document.getElementById("aboutBody").innerHTML = String(contentOf("aboutText")).split(/\n{2,}/).map(s=>s.trim()).filter(Boolean)
     .map(s=>"<p>" + escHtml(s).replace(/\n/g, "<br>") + "</p>").join("");
-  document.getElementById("aboutImg").src = contentOf("aboutImage") || DEFAULT_CONTENT.aboutImage;
   // comodidades (sin el emoji inicial, para un look más sobrio)
   const am = Array.isArray(contentOf("comodidades")) ? contentOf("comodidades") : [];
   const amx = Array.isArray(contentOf("exterior")) ? contentOf("exterior") : [];
@@ -1680,7 +1675,6 @@ function renderAll(){
   renderHero();
   renderVideos();
   renderWaFloat();
-  renderMusic();
   renderLineup();
   renderPayments();
   renderSeasons();
@@ -1745,7 +1739,7 @@ function renderAdmin(){
     <div class="admin-tabs" id="adminTabs">
       <button data-tab="casitas">Casitas</button>
       <button data-tab="fotos">Fotos</button>
-      <button data-tab="portada">Portada y música</button>
+      <button data-tab="portada">Portada y videos</button>
       <button data-tab="contenido">Contenido</button>
       <button data-tab="pagos">Pagos</button>
       <button data-tab="temporadas">Temporadas</button>
@@ -2210,33 +2204,6 @@ function renderCoverTab(body){
         <input type="text" id="heroUrl" value="${escAttr(b.heroImage || "")}" placeholder="o pegá un link directo a una imagen" style="margin-top:8px;">
       </div>
       <button class="btn btn-ghost" id="heroReset" style="width:100%;padding:11px;font-size:13px;">Volver a la imagen original</button>
-    </div>
-
-    <div class="admin-section">
-      <h3>Música de fondo</h3>
-      <p class="sub">Elegí una de las dos opciones. En ambos casos el visitante la activa con el botón ♪ que aparece abajo a la izquierda, porque los navegadores no dejan que la música empiece sola con sonido.</p>
-      <div class="field">
-        <label>Opción 1: link de Spotify (canción, álbum o playlist)</label>
-        <input type="text" id="spotifyUrl" value="${escAttr(b.spotifyUrl || "")}" placeholder="https://open.spotify.com/playlist/...">
-        <div class="hint">Se muestra el reproductor de Spotify. Quien no tenga una sesión de Spotify iniciada en su navegador escucha solo un fragmento de unos 30 segundos. Si cargás un link de Spotify, se usa en lugar del MP3. En Spotify: Compartir → Copiar enlace.</div>
-      </div>
-      <p class="sub" style="margin-bottom:12px;">Opción 2: tu propio MP3, que suena de fondo. Usá música sin derechos de autor (por ejemplo Pixabay Music o la Biblioteca de audio de YouTube).</p>
-      ${b.musicUrl ? `<audio controls src="${escAttr(b.musicUrl)}" style="width:100%;margin-bottom:12px;"></audio>` : ""}
-      <div class="field">
-        <label>Subir archivo de audio (MP3)</label>
-        <input type="file" accept="audio/*" id="musicFile">
-        <div class="hint">Hasta 20 MB.</div>
-      </div>
-      <div class="field">
-        <label>o link directo a un MP3</label>
-        <input type="text" id="musicUrl" value="${escAttr(b.musicUrl || "")}">
-      </div>
-      <div class="field">
-        <label style="display:flex;gap:8px;align-items:center;font-weight:400;">
-          <input type="checkbox" id="musicAuto" ${b.musicAutoOnTouch ? "checked" : ""}> Intentar iniciar la música con el primer toque o clic del visitante
-        </label>
-      </div>
-      <button class="btn btn-ghost" id="musicRemove" style="width:100%;padding:11px;font-size:13px;">Quitar música</button>
     </div>`;
 
   const apply = async () => { renderAll(); await saveConfig(); renderCoverTab(body); };
@@ -2253,14 +2220,6 @@ function renderCoverTab(body){
   }));
   body.querySelector("#heroTextReset").addEventListener("click", async ()=>{
     Object.assign(b, DEFAULT_HERO_TEXT); await apply();
-  });
-  body.querySelector("#spotifyUrl").addEventListener("change", async e=>{
-    const v = e.target.value.trim();
-    if(v && !spotifyEmbed(v)){
-      showToast("Ese link no parece de Spotify. Copialo desde Compartir → Copiar enlace.", true);
-      return;
-    }
-    b.spotifyUrl = v; await apply();
   });
   bindDrop(body.querySelector("#heroDrop"), async files=>{
     showToast("Subiendo imagen…");
@@ -2305,19 +2264,9 @@ function renderCoverTab(body){
   body.querySelector("#casasVideoTitle").addEventListener("change", async e=>{ b.casasVideoTitle = e.target.value.trim(); await apply(); });
   body.querySelector("#heroUrl").addEventListener("change", async e=>{ b.heroImage = e.target.value.trim(); await apply(); });
   body.querySelector("#heroReset").addEventListener("click", async ()=>{ b.heroImage = ""; await apply(); });
-  body.querySelector("#musicFile").addEventListener("change", async e=>{
-    const f = e.target.files[0]; if(!f) return;
-    showToast("Subiendo audio…");
-    const url = await uploadAudio(f);
-    if(!url) return;
-    b.musicUrl = url; await apply();
-  });
-  body.querySelector("#musicUrl").addEventListener("change", async e=>{ b.musicUrl = e.target.value.trim(); await apply(); });
-  body.querySelector("#musicAuto").addEventListener("change", async e=>{ b.musicAutoOnTouch = e.target.checked; await apply(); });
-  body.querySelector("#musicRemove").addEventListener("click", async ()=>{ b.musicUrl = ""; await apply(); });
 }
 
-/* ---------- PORTADA Y MÚSICA EN EL SITIO ---------- */
+/* ---------- PORTADA EN EL SITIO ---------- */
 function setVideo(el, url){
   if(url){
     if(el.getAttribute("src") !== url){
@@ -2366,75 +2315,6 @@ function renderHero(){
   const tag = loc.length > 1 ? loc[0] + ", " + loc[loc.length - 1] : (loc[0] || "");
   document.getElementById("heroTag").textContent = tag ? tag.toLowerCase() : "";
 }
-function spotifyEmbed(url){
-  const m = String(url || "").match(/open\.spotify\.com\/(?:intl-[a-z]{2}\/)?(track|album|playlist|episode|show|artist)\/([A-Za-z0-9]+)/);
-  return m ? "https://open.spotify.com/embed/" + m[1] + "/" + m[2] + "?utm_source=generator" : "";
-}
-function updateMusicBtn(){
-  const btn = document.getElementById("musicBtn"), a = document.getElementById("bgm");
-  if(btn.dataset.mode === "spotify"){
-    btn.textContent = document.getElementById("spotifyPanel").classList.contains("open") ? "✕ Cerrar música" : "♪ Música";
-  } else {
-    btn.textContent = a.paused ? "♪ Música" : "❚❚ Pausar música";
-  }
-}
-let musicAutoBound = false;
-function renderMusic(){
-  const b = CONFIG.business, audio = document.getElementById("bgm"), btn = document.getElementById("musicBtn");
-  const panel = document.getElementById("spotifyPanel"), frame = document.getElementById("spotifyFrame");
-  const sp = spotifyEmbed(b.spotifyUrl);
-  const src = b.musicUrl || "";
-
-  if(sp){
-    // Spotify: reproductor visible; no se carga nada de Spotify hasta que el visitante lo abre
-    audio.pause(); audio.removeAttribute("src");
-    btn.dataset.mode = "spotify";
-    btn.style.display = "inline-flex";
-    if(frame.dataset.src !== sp){
-      frame.dataset.src = sp;
-      if(panel.classList.contains("open")) frame.src = sp; else frame.removeAttribute("src");
-    }
-    updateMusicBtn();
-    return;
-  }
-
-  // sin Spotify: se limpia el panel
-  btn.dataset.mode = "mp3";
-  panel.classList.remove("open"); frame.removeAttribute("src"); delete frame.dataset.src;
-
-  if(!src){
-    audio.pause(); audio.removeAttribute("src"); btn.style.display = "none"; return;
-  }
-  if(audio.getAttribute("src") !== src){ audio.setAttribute("src", src); audio.volume = 0.35; }
-  btn.style.display = "inline-flex";
-  updateMusicBtn();
-  if(b.musicAutoOnTouch && !musicAutoBound){
-    musicAutoBound = true;
-    const start = e => {
-      if(e.target.closest && e.target.closest("#musicBtn, #adminFab, #adminOverlay, #waFloat")) return;
-      document.removeEventListener("pointerdown", start);
-      if(CONFIG.business.musicAutoOnTouch && btn.dataset.mode === "mp3" && audio.paused && audio.getAttribute("src")) audio.play().catch(()=>{});
-    };
-    document.addEventListener("pointerdown", start);
-  }
-}
-(function(){
-  const a = document.getElementById("bgm"), btn = document.getElementById("musicBtn");
-  const panel = document.getElementById("spotifyPanel"), frame = document.getElementById("spotifyFrame");
-  btn.addEventListener("click", ()=>{
-    if(btn.dataset.mode === "spotify"){
-      const open = panel.classList.toggle("open");
-      if(open && !frame.getAttribute("src") && frame.dataset.src) frame.src = frame.dataset.src;
-      updateMusicBtn();
-      return;
-    }
-    if(a.paused) a.play().catch(()=>showToast("No se pudo reproducir la música", true));
-    else a.pause();
-  });
-  a.addEventListener("play", updateMusicBtn);
-  a.addEventListener("pause", updateMusicBtn);
-})();
-
 /* ---------- ADMIN: CONTENIDO DE LAS SECCIONES ---------- */
 function listOf(key){
   const b = CONFIG.business;
@@ -2468,11 +2348,6 @@ function renderContentTab(body){
       <h3>Sobre nosotros</h3>
       <div class="field"><label>Título</label><input type="text" data-biz="aboutTitle" value="${escAttr(contentOf("aboutTitle"))}"></div>
       <div class="field"><label>Texto</label><textarea data-biz="aboutText" style="min-height:150px;">${escHtml(contentOf("aboutText"))}</textarea><div class="hint">Dejá una línea en blanco para separar párrafos.</div></div>
-      <div class="field">
-        <label>Imagen</label>
-        <div class="thumb-row"><img src="${escAttr(contentOf("aboutImage"))}" style="width:96px;height:120px;" alt=""></div>
-        <input type="file" accept="image/*,.heic,.heif" id="aboutFile">
-      </div>
     </div>
 
     <div class="admin-section">
@@ -2515,13 +2390,6 @@ function renderContentTab(body){
   body.querySelectorAll("[data-biz-lines]").forEach(i=>i.addEventListener("change", async ()=>{
     b[i.dataset.bizLines] = i.value.split("\n").map(s=>s.trim()).filter(Boolean); await commit(false);
   }));
-  body.querySelector("#aboutFile").addEventListener("change", async e=>{
-    const f = e.target.files[0]; if(!f) return;
-    showToast("Subiendo foto…");
-    const url = await uploadPhoto(f, 1600);
-    if(!url) return;
-    b.aboutImage = url; await commit(true);
-  });
   body.querySelectorAll("[data-card]").forEach(i=>i.addEventListener("change", async ()=>{
     const [k, idx, f] = i.dataset.card.split(":");
     listOf(k)[parseInt(idx)][f] = i.value; await commit(false);
