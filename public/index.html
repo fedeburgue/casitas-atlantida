@@ -1741,6 +1741,7 @@ function renderAdmin(){
       <button data-tab="fotos">Fotos</button>
       <button data-tab="portada">Portada y videos</button>
       <button data-tab="contenido">Contenido</button>
+      <button data-tab="visitas">Visitas</button>
       <button data-tab="pagos">Pagos</button>
       <button data-tab="temporadas">Temporadas</button>
       <button data-tab="calendarios">Calendarios</button>
@@ -1815,6 +1816,7 @@ function renderAdminTabBody(){
 
   if(state.adminTab === "fotos"){ renderPhotosTab(body); }
   if(state.adminTab === "portada"){ renderCoverTab(body); }
+  if(state.adminTab === "visitas"){ renderStatsTab(body); }
   if(state.adminTab === "contenido"){ renderContentTab(body); }
 
   if(state.adminTab === "pagos"){
@@ -2151,6 +2153,60 @@ function renderPhotosTab(body){
   });
 }
 
+/* ---------- VISITAS ---------- */
+function trackEvent(type, unique){
+  try{
+    if(pageIsAdmin() || sessionStorage.getItem("adminAuth")) return;
+    const data = new Blob([JSON.stringify({ type, unique: !!unique })], { type:"application/json" });
+    if(navigator.sendBeacon) navigator.sendBeacon(API + "/api/track", data);
+    else fetch(API + "/api/track", { method:"POST", headers:{ "Content-Type":"application/json" }, body: data, keepalive:true }).catch(()=>{});
+  }catch(e){}
+}
+function trackVisit(){
+  let first = true, uniq = true;
+  try{
+    if(sessionStorage.getItem("seenVisit")) first = false;
+    else sessionStorage.setItem("seenVisit", "1");
+    const day = new Date().toISOString().slice(0, 10);
+    if(localStorage.getItem("seenDay") === day) uniq = false;
+    else localStorage.setItem("seenDay", day);
+  }catch(e){}
+  if(first) trackEvent("visit", uniq);
+}
+document.addEventListener("click", e=>{
+  const t = e.target.closest && e.target.closest("[data-reserve], a[href*='wa.me'], a[href*='api.whatsapp.com']");
+  if(!t) return;
+  trackEvent(t.matches("[data-reserve]") ? "reserve" : "whatsapp");
+});
+async function renderStatsTab(body){
+  body.innerHTML = '<p class="sub">Cargando visitas…</p>';
+  let data = { days:{} };
+  try{
+    const r = await fetch(API + "/api/admin/stats", { headers: authHeader() });
+    if(r.ok) data = await r.json();
+  }catch(e){}
+  const days = data.days || {};
+  const keys = Object.keys(days).sort().reverse();
+  const sum = (from, f) => keys.filter(k=>k >= from).reduce((a,k)=>a + (days[k][f] || 0), 0);
+  const iso = n => { const d = new Date(Date.now() - n * 86400000); return new Intl.DateTimeFormat("en-CA", { timeZone:"America/Montevideo" }).format(d); };
+  const periods = [["Hoy", iso(0)], ["Últimos 7 días", iso(6)], ["Últimos 30 días", iso(29)], ["Desde el inicio", "0000"]];
+  const row = (label, from) => `<tr><td>${label}</td><td>${sum(from,"visits")}</td><td>${sum(from,"unique")}</td><td>${sum(from,"reserve")}</td><td>${sum(from,"whatsapp")}</td></tr>`;
+  body.innerHTML = `
+    <div class="admin-section" style="border-top:none;margin-top:0;padding-top:0;">
+      <h3>Visitas al sitio</h3>
+      <p class="sub">Cuenta cada vez que alguien entra (una vez por sesión) y las personas distintas por día. No se cuentan tus propias entradas al panel ni los buscadores. No se guarda ningún dato personal. Las cifras empiezan a contarse desde que publicaste esta versión.</p>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <tr style="text-align:left;"><th></th><th>Visitas</th><th>Personas</th><th>Reservas online</th><th>WhatsApp</th></tr>
+        ${periods.map(p=>row(p[0], p[1])).join("")}
+      </table>
+    </div>
+    <div class="admin-section">
+      <h3>Últimos 14 días</h3>
+      ${keys.length ? `<table style="width:100%;border-collapse:collapse;font-size:13px;"><tr style="text-align:left;"><th>Día</th><th>Visitas</th><th>Personas</th><th>Reservas</th><th>WhatsApp</th></tr>${keys.slice(0,14).map(k=>`<tr><td>${k}</td><td>${days[k].visits||0}</td><td>${days[k].unique||0}</td><td>${days[k].reserve||0}</td><td>${days[k].whatsapp||0}</td></tr>`).join("")}</table>` : '<p class="sub">Todavía no hay visitas registradas.</p>'}
+      <div class="hint" style="margin-top:10px;">"Reservas online" y "WhatsApp" cuentan los toques en esos botones.</div>
+    </div>`;
+}
+
 /* ---------- ADMIN: PORTADA Y MÚSICA ---------- */
 function renderCoverTab(body){
   const b = CONFIG.business;
@@ -2441,6 +2497,7 @@ function renderContentTab(body){
     await tryRestoreAdmin();
     renderAll();
     route();
+    trackVisit();
   }catch(e){
     document.body.innerHTML = '<div style="padding:60px;text-align:center;font-family:sans-serif;">No se pudo conectar con el servidor. Si estás probando este archivo localmente, iniciá el backend primero (ver README).</div>';
   }

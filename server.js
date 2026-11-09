@@ -230,6 +230,42 @@ app.get("/api/config", (req, res) => {
   res.json(out);
 });
 
+// ---------- Estadísticas de visitas (sin datos personales) ----------
+const STATS_FILE = path.join(DATA_DIR, "stats.json");
+function readStats() {
+  try { return JSON.parse(fs.readFileSync(STATS_FILE, "utf-8")); } catch (e) { return { days: {} }; }
+}
+let statsDirty = false, statsCache = null;
+function today() {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Montevideo" }).format(new Date());
+}
+const trackHits = new Map();
+setInterval(() => trackHits.clear(), 60 * 1000).unref();
+app.post("/api/track", (req, res) => {
+  res.status(204).end();
+  const ua = String(req.header("user-agent") || "");
+  if (/bot|crawl|spider|slurp|preview|headless/i.test(ua)) return;
+  const n = (trackHits.get(req.ip) || 0) + 1;
+  trackHits.set(req.ip, n);
+  if (n > 60) return;
+  const { type, unique } = req.body || {};
+  if (!["visit", "reserve", "whatsapp"].includes(type)) return;
+  if (!statsCache) statsCache = readStats();
+  const d = today();
+  const day = (statsCache.days[d] = statsCache.days[d] || { visits: 0, unique: 0, reserve: 0, whatsapp: 0 });
+  if (type === "visit") { day.visits++; if (unique) day.unique++; }
+  else day[type]++;
+  statsDirty = true;
+});
+setInterval(() => {
+  if (!statsDirty || !statsCache) return;
+  statsDirty = false;
+  try { fs.writeFileSync(STATS_FILE, JSON.stringify(statsCache)); } catch (e) { console.error("No se pudo guardar stats", e.message); }
+}, 30 * 1000).unref();
+app.get("/api/admin/stats", checkAuth, (req, res) => {
+  res.json(statsCache || readStats());
+});
+
 app.post("/api/admin/login", (req, res) => {
   if (isBlocked(req.ip)) return res.status(429).json({ ok: false, error: "Demasiados intentos. Probá de nuevo en unos minutos." });
   const cfg = readConfig();
