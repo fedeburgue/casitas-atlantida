@@ -337,11 +337,10 @@
   .hero::before{z-index:1;}
 
   /* VIDEO DE LAS CASAS */
-  .section-video{background:var(--ink); color:#fff; padding:96px 0;}
-  .section-video .section-eyebrow{color:rgba(255,255,255,.7);}
-  .section-video h2{color:#fff;}
-  .video-frame{max-width:1040px; margin:36px auto 0; background:#000; aspect-ratio:16/9; overflow:hidden;}
-  .video-frame video{width:100%; height:100%; display:block; object-fit:contain; background:#000;}
+  .section-video{position:relative; height:100vh; min-height:640px; background:#0d1416; color:#fff; overflow:hidden; display:flex; align-items:center; justify-content:center; text-align:center;}
+  .section-video video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0;}
+  .section-video::before{content:''; position:absolute; inset:0; z-index:1; background:linear-gradient(180deg, rgba(10,14,16,.30) 0%, rgba(10,14,16,.15) 50%, rgba(10,14,16,.55) 100%);}
+  .section-video .video-title{position:relative; z-index:2; padding:0 24px; font-family:'Cormorant Garamond',serif; font-weight:400; font-size:clamp(40px,6vw,84px); line-height:1.05; color:#fff;}
 
   /* BOTÓN FLOTANTE DE WHATSAPP */
   .wa-float{
@@ -655,13 +654,8 @@
 </section>
 
 <section class="section-video home-only" id="videoCasas" style="display:none;">
-  <div class="container">
-    <div class="section-head">
-      <div class="section-eyebrow">conocé el lugar</div>
-      <h2 id="videoCasasTitle">Conocé las casitas</h2>
-    </div>
-    <div class="video-frame"><video id="casasVideo" controls playsinline preload="metadata"></video></div>
-  </div>
+  <video id="casasVideo" muted loop playsinline autoplay preload="auto" aria-hidden="true"></video>
+  <h2 class="video-title" id="videoCasasTitle"></h2>
 </section>
 
 <section class="section home-only" id="casitas">
@@ -2196,9 +2190,9 @@ function renderCoverTab(body){
 
     <div class="admin-section" id="casasVideoDrop">
       <h3>Video de las casas (antes de las casitas)</h3>
-      <p class="sub">Aparece como una sección propia, con controles de reproducción, justo antes de las casitas. Si no cargás ninguno, la sección no se muestra.</p>
-      ${b.casasVideo ? `<video src="${escAttr(b.casasVideo)}" controls playsinline style="width:100%;max-height:200px;background:#000;margin-bottom:10px;"></video>` : ""}
-      <div class="field"><label>Título de la sección</label><input type="text" id="casasVideoTitle" value="${escAttr(b.casasVideoTitle || "")}" placeholder="Conocé las casitas"></div>
+      <p class="sub">Aparece a pantalla completa, igual que la portada (se reproduce solo, en bucle y sin sonido), justo antes de las casitas. Si no cargás ninguno, la sección no se muestra. El título es opcional: si lo dejás vacío, no se muestra texto.</p>
+      ${b.casasVideo ? `<video src="${escAttr(b.casasVideo)}" muted loop autoplay playsinline style="width:100%;max-height:200px;background:#000;margin-bottom:10px;"></video>` : ""}
+      <div class="field"><label>Texto sobre el video (opcional)</label><input type="text" id="casasVideoTitle" value="${escAttr(b.casasVideoTitle || "")}" placeholder="Dejalo vacío si no querés texto"></div>
       <div class="field">
         <input type="file" accept="video/*,.mp4,.mov,.m4v,.webm" id="casasVideoFile">
         <div class="hint">MP4 de hasta 90 MB. También podés arrastrarlo sobre este bloque.</div>
@@ -2351,10 +2345,11 @@ function renderVideos(){
   if(setVideo(hv, b.heroVideo)){ const pr = hv.play(); if(pr && pr.catch) pr.catch(()=>{}); }
   const sec = document.getElementById("videoCasas");
   const cv = document.getElementById("casasVideo");
-  document.getElementById("videoCasasTitle").textContent = b.casasVideoTitle || "Conocé las casitas";
+  document.getElementById("videoCasasTitle").textContent = b.casasVideoTitle || "";
   if(b.casasVideo){
     sec.style.display = "";
     if(cv.getAttribute("src") !== b.casasVideo) cv.src = b.casasVideo;
+    const pr2 = cv.play(); if(pr2 && pr2.catch) pr2.catch(()=>{});
   } else {
     sec.style.display = "none";
     if(cv.getAttribute("src")){ cv.pause(); cv.removeAttribute("src"); try{ cv.load(); }catch(e){} }
