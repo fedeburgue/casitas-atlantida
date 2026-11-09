@@ -276,6 +276,7 @@
 
   .dropzone{display:flex; align-items:center; justify-content:center; text-align:center; gap:8px; width:100%; padding:20px 12px; border:1.5px dashed #c9c4b8; border-radius:8px; font-size:13px; color:#666; cursor:pointer; background:#fafaf7; transition:background .2s, border-color .2s;}
   .dropzone:hover{border-color:var(--ocean); background:#f1f7f8;}
+  .drop-hint{font-size:12px; color:var(--muted,#6b7678); margin:6px 0; padding:10px; border:1px dashed var(--line); text-align:center;}
   .drag{outline:2px dashed var(--ocean); outline-offset:6px; background:#f1f7f8; border-radius:6px;}
 
   /* ADMIN: FOTOS */
@@ -2447,9 +2448,10 @@ function listOf(key){
 }
 function cardRowsHtml(key){
   return listOf(key).map((it,i)=>`
-    <div class="pay-edit-row">
+    <div class="pay-edit-row" data-card-row="${key}:${i}">
       <button class="remove-pay" data-card-del="${key}:${i}">Quitar ✕</button>
       <div class="thumb-row">${it.image ? `<img src="${escAttr(it.image)}" style="width:96px;height:64px;" alt="">` : ""}</div>
+      <div class="drop-hint">Arrastrá una foto desde tu Mac y soltala sobre este bloque, o elegí el archivo:</div>
       <div class="field"><input type="file" accept="image/*,.heic,.heif" data-card-img="${key}:${i}"></div>
       <div class="field"><label>Título</label><input type="text" data-card="${key}:${i}:title" value="${escAttr(it.title)}"></div>
       <div class="field"><label>Texto</label><textarea data-card="${key}:${i}:text">${escHtml(it.text || "")}</textarea></div>
@@ -2534,6 +2536,13 @@ function renderContentTab(body){
     const [k, idx] = i.dataset.cardImg.split(":");
     showToast("Subiendo foto…");
     const url = await uploadPhoto(f, 1400);
+    if(!url) return;
+    listOf(k)[parseInt(idx)].image = url; await commit(true);
+  }));
+  body.querySelectorAll("[data-card-row]").forEach(row=>bindDrop(row, async files=>{
+    const [k, idx] = row.dataset.cardRow.split(":");
+    showToast("Subiendo foto…");
+    const url = await uploadPhoto(files[0], 1400);
     if(!url) return;
     listOf(k)[parseInt(idx)].image = url; await commit(true);
   }));
