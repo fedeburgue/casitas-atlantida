@@ -15,6 +15,8 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const { AsyncLocalStorage } = require("async_hooks");
+const phoneCtx = new AsyncLocalStorage(); // número de WhatsApp que recibió el mensaje (se responde desde el mismo)
 
 module.exports = function mountWhatsApp(app, { readConfig, DATA_DIR, PORT, checkAuth, today }) {
   const TOKEN = process.env.WA_TOKEN || "";
@@ -23,7 +25,7 @@ module.exports = function mountWhatsApp(app, { readConfig, DATA_DIR, PORT, check
   const APP_SECRET = process.env.WA_APP_SECRET || "";
   const OWNER = String(process.env.OWNER_WA || "").replace(/\D/g, "");
   const SITE = (process.env.SITE_URL || "https://casitas-atlantida.onrender.com").replace(/\/$/, "");
-  const GRAPH = "https://graph.facebook.com/v25.0/" + PHONE_ID + "/messages";
+  const graphUrl = () => "https://graph.facebook.com/v25.0/" + (phoneCtx.getStore() || PHONE_ID) + "/messages";
 
   const SESS_FILE = path.join(DATA_DIR, "wa-sessions.json");
   const LEADS_FILE = path.join(DATA_DIR, "wa-leads.json");
@@ -46,12 +48,12 @@ module.exports = function mountWhatsApp(app, { readConfig, DATA_DIR, PORT, check
   async function send(body) {
     if (!TOKEN || !PHONE_ID) { console.error("[wa] faltan WA_TOKEN o WA_PHONE_ID"); return; }
     try {
-      const r = await fetch(GRAPH, {
+      const r = await fetch(graphUrl(), {
         method: "POST",
         headers: { Authorization: "Bearer " + TOKEN, "Content-Type": "application/json" },
         body: JSON.stringify(Object.assign({ messaging_product: "whatsapp" }, body)),
       });
-      if (!r.ok) console.error("[wa] error al enviar", r.status, (await r.text()).slice(0, 300));
+      if (!r.ok) console.error("[wa] error al enviar desde", phoneCtx.getStore() || PHONE_ID, r.status, (await r.text()).slice(0, 300));
     } catch (e) { console.error("[wa] fallo de red", e.message); }
   }
   const text = (to, body) => send({ to, type: "text", text: { body: cut(body, 3900), preview_url: true } });
@@ -344,6 +346,7 @@ module.exports = function mountWhatsApp(app, { readConfig, DATA_DIR, PORT, check
         for (const m of ((ch.value || {}).messages || [])) {
           if (seen.has(m.id)) continue;
           seen.set(m.id, Date.now());
+          console.log("[wa] mensaje recibido de", m.from, "tipo", m.type, "en el número", ((ch.value || {}).metadata || {}).phone_number_id);
           let input = {};
           if (m.type === "text") input = { text: m.text.body };
           else if (m.type === "interactive") {
@@ -351,7 +354,7 @@ module.exports = function mountWhatsApp(app, { readConfig, DATA_DIR, PORT, check
             const rep = i.button_reply || i.list_reply || {};
             input = { id: rep.id, text: rep.title };
           } else input = { media: true };
-          handle(m.from, input).catch(err => console.error("[wa] error", err));
+          phoneCtx.run(((ch.value || {}).metadata || {}).phone_number_id || PHONE_ID, () => handle(m.from, input)).catch(err => console.error("[wa] error", err));
         }
       }
     } catch (err) { console.error("[wa] webhook", err); }
