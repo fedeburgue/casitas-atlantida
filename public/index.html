@@ -2498,6 +2498,10 @@ function renderContentTab(body){
     renderAll();
     route();
     trackVisit();
+    try{
+      const qc = parseInt(new URLSearchParams(location.search).get("casa"), 10);
+      if(qc && !pageIsReserve() && !pageIsAdmin() && CONFIG.casitas.some(c=>c.id === qc)) openDetail(qc);
+    }catch(e){}
   }catch(e){
     document.body.innerHTML = '<div style="padding:60px;text-align:center;font-family:sans-serif;">No se pudo conectar con el servidor. Si estás probando este archivo localmente, iniciá el backend primero (ver README).</div>';
   }

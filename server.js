@@ -235,6 +235,107 @@ app.get("/api/config", (req, res) => {
   res.json(out);
 });
 
+// ---------- Consulta de disponibilidad para asistentes (WhatsApp, bots, automatizaciones) ----------
+// GET /api/disponibilidad?entrada=2027-01-10&salida=2027-01-14[&casa=2][&formato=texto]
+// Solo lee datos que ya son públicos en el sitio. Considera las fechas cargadas a mano y los calendarios de Airbnb.
+function dayKeyAdd(k, n) {
+  const d = new Date(k + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+function seasonFor(cfg, k) {
+  const md = k.slice(5);
+  return (cfg.seasons || []).find(x => x.from <= x.to ? (md >= x.from && md <= x.to) : (md >= x.from || md <= x.to));
+}
+app.get("/api/disponibilidad", (req, res) => {
+  res.set("Cache-Control", "no-store");
+  const cfg = readConfig();
+  const entrada = String(req.query.entrada || ""), salida = String(req.query.salida || "");
+  const isDate = v => /^\d{4}-\d{2}-\d{2}$/.test(v) && !isNaN(new Date(v + "T00:00:00Z"));
+  const texto = String(req.query.formato || "") === "texto";
+  const base = req.protocol + "://" + req.get("host");
+  const fail = (code, msg) => texto ? res.status(code).type("text/plain").send(msg) : res.status(code).json({ error: msg });
+  if (!isDate(entrada) || !isDate(salida)) return fail(400, "Indicá entrada y salida en formato AAAA-MM-DD. Ejemplo: ?entrada=2027-01-10&salida=2027-01-14");
+  if (salida <= entrada) return fail(400, "La salida tiene que ser posterior a la entrada.");
+  const noches = Math.round((new Date(salida) - new Date(entrada)) / 86400000);
+  if (noches > 60) return fail(400, "El máximo de consulta es 60 noches.");
+  let casas = cfg.casitas;
+  if (req.query.casa) casas = casas.filter(c => String(c.id) === String(req.query.casa));
+  if (!casas.length) return fail(404, "No existe esa casa.");
+  const personas = parseInt(req.query.personas, 10) || 0;
+  const capMax = c => Math.max(0, ...(String(c.capacity || "").match(/\d+/g) || []).map(Number));
+  const busySet = c => new Set([...((cfg.availability || {})[c.id] || []), ...((external[c.id] && external[c.id].dates) || [])]);
+  const libreEn = (c, a, b) => {
+    const o = busySet(c);
+    for (let k = a; k < b; k = dayKeyAdd(k, 1)) if (o.has(k)) return false;
+    return true;
+  };
+
+  const minNoches = seasonFor(cfg, entrada) ? seasonFor(cfg, entrada).minNights : ((cfg.business && cfg.business.minNights) || 2);
+  let total = { usd: 0, uyu: 0 }, conPrecio = true;
+  for (let k = entrada; k < salida; k = dayKeyAdd(k, 1)) {
+    const se = seasonFor(cfg, k);
+    if (!se || se.usd == null) { conPrecio = false; break; }
+    total.usd += se.usd; total.uyu += se.uyu || 0;
+  }
+  const resultado = casas.map(c => {
+    const ocupadas = busySet(c);
+    let ocup = 0;
+    for (let k = entrada; k < salida; k = dayKeyAdd(k, 1)) if (ocupadas.has(k)) ocup++;
+    const cap = capMax(c);
+    return {
+      id: c.id,
+      nombre: String(c.name).split("·")[0].trim(),
+      libre: ocup === 0,
+      nochesOcupadas: ocup,
+      capacidad: cap || null,
+      entraLaGente: !personas || !cap || cap >= personas,
+      dormitorios: c.bedrooms || null,
+      fotosYComodidades: base + "/?casa=" + c.id,
+      reservar: base + "/reservar?casa=" + c.id,
+    };
+  });
+  // Fechas alternativas con la misma cantidad de noches, cuando ninguna casa sirve para lo pedido
+  let alternativas = [];
+  if (!resultado.some(r => r.libre && r.entraLaGente)) {
+    const hoy = today();
+    for (let d = 1; d <= 21 && alternativas.length < 4; d++) {
+      for (const sign of [1, -1]) {
+        const a = dayKeyAdd(entrada, sign * d), b = dayKeyAdd(a, noches);
+        if (a < hoy) continue;
+        const aptas = casas.filter(c => libreEn(c, a, b) && (!personas || !capMax(c) || capMax(c) >= personas));
+        if (aptas.length && alternativas.length < 4) alternativas.push({ entrada: a, salida: b, casasLibres: aptas.map(c => String(c.name).split("·")[0].trim()) });
+      }
+    }
+  }
+  const cumpleMinimo = noches >= minNoches;
+  const out = {
+    entrada, salida, noches, minimoNoches: minNoches, cumpleMinimo,
+    precioTotal: conPrecio ? { usd: total.usd, uyu: total.uyu } : null,
+    casas: resultado,
+    alternativas,
+    nota: "Los calendarios de Airbnb se leen cada 15 minutos. Confirmar por WhatsApp antes de dar por cerrada la reserva.",
+  };
+  if (!texto) return res.json(out);
+  const lineas = [
+    "Del " + entrada + " al " + salida + " (" + noches + (noches === 1 ? " noche" : " noches") + ")",
+    ...resultado.map(r => r.nombre + ": " + (r.libre ? (r.entraLaGente ? "LIBRE" : "libre, pero no entran " + personas + " personas (capacidad " + r.capacidad + ")") : "ocupada (" + r.nochesOcupadas + " de " + noches + " noches)")),
+    ...(alternativas.length ? ["Fechas cercanas con disponibilidad:", ...alternativas.map(a => "- " + a.entrada + " al " + a.salida + ": " + a.casasLibres.join(", "))] : []),
+    "Estadía mínima en esas fechas: " + minNoches + " noches" + (cumpleMinimo ? "" : " (esta consulta no la cumple)"),
+    conPrecio ? "Precio total por casa: USD " + total.usd + " / $" + total.uyu : "Precio: consultar",
+  ];
+  res.type("text/plain").send(lineas.join("\n"));
+});
+
+// Medios de pago y datos de contacto (ya son públicos en el sitio), para que el asistente los envíe al cliente.
+app.get("/api/medios-de-pago", (req, res) => {
+  const cfg = readConfig();
+  const metodos = (cfg.paymentMethods || []).map(m => ({ titulo: m.title, detalle: m.desc }));
+  if (String(req.query.formato || "") === "texto")
+    return res.type("text/plain").send(metodos.map(m => m.titulo + ": " + m.detalle).join("\n\n"));
+  res.json({ metodos, whatsapp: cfg.business.whatsappNumber });
+});
+
 // ---------- Estadísticas de visitas (sin datos personales) ----------
 const STATS_FILE = path.join(DATA_DIR, "stats.json");
 function readStats() {
