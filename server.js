@@ -281,6 +281,9 @@ app.get("/api/disponibilidad", (req, res) => {
   // true si al menos una noche cae en temporada de verano (según la tabla de temporadas): sirve para ofrecer servicio de playa y carga eléctrica
   let enTemporada = false;
   for (let k = entrada; k < salida; k = dayKeyAdd(k, 1)) if (seasonFor(cfg, k)) { enTemporada = true; break; }
+  // Seña = valor de una noche de estadía (se toma la tarifa de la primera noche)
+  const seN = seasonFor(cfg, entrada);
+  const sena = seN && seN.usd != null ? { usd: seN.usd, uyu: seN.uyu || 0 } : null;
   const resultado = casas.map(c => {
     const ocupadas = busySet(c);
     let ocup = 0;
@@ -315,6 +318,7 @@ app.get("/api/disponibilidad", (req, res) => {
   const out = {
     entrada, salida, noches, minimoNoches: minNoches, cumpleMinimo, enTemporada,
     precioTotal: conPrecio ? { usd: total.usd, uyu: total.uyu } : null,
+    sena,
     casas: resultado,
     alternativas,
     nota: "Los calendarios de Airbnb se leen cada 15 minutos. Confirmar por WhatsApp antes de dar por cerrada la reserva.",
@@ -327,6 +331,7 @@ app.get("/api/disponibilidad", (req, res) => {
     ...(alternativas.length ? ["Fechas cercanas con disponibilidad:", ...alternativas.map(a => "- " + a.entrada + " al " + a.salida + ": " + a.casasLibres.join(", "))] : []),
     "Estadía mínima en esas fechas: " + minNoches + " noches" + (cumpleMinimo ? "" : " (esta consulta no la cumple)"),
     conPrecio ? "Precio total por casa: USD " + total.usd + " / $" + total.uyu : "Precio: consultar",
+    sena ? "Seña (una noche): USD " + sena.usd + " / $" + sena.uyu : "Seña: consultar",
   ];
   res.type("text/plain").send(lineas.join("\n"));
 });
