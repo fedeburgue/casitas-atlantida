@@ -7,10 +7,14 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Disponibilidad">
 <title>Disponibilidad — Casitas Atlántida</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/app-icono-180.png">
+<meta name="theme-color" content="#26323a">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>
   :root{--ink:#1a2123; --muted:#6b7678; --line:#e3e7e8; --bg:#f6f7f7; --free:#dff0e4; --freeInk:#22663a; --busy:#26323a; --air:#c0563a; --today:#b8860b;}
   *{box-sizing:border-box; margin:0; padding:0;}
-  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--ink); padding:16px 0 40px; -webkit-text-size-adjust:100%;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--ink); padding:max(16px, env(safe-area-inset-top, 0px)) 0 40px; -webkit-text-size-adjust:100%;}
   .wrap{max-width:1100px; margin:0 auto; padding:0 16px;}
   h1{font-size:22px; font-weight:600; letter-spacing:.01em;}
   .sub{color:var(--muted); font-size:13px; margin:4px 0 16px;}
