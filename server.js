@@ -278,6 +278,9 @@ app.get("/api/disponibilidad", (req, res) => {
     if (!se || se.usd == null) { conPrecio = false; break; }
     total.usd += se.usd; total.uyu += se.uyu || 0;
   }
+  // true si al menos una noche cae en temporada de verano (según la tabla de temporadas): sirve para ofrecer servicio de playa y carga eléctrica
+  let enTemporada = false;
+  for (let k = entrada; k < salida; k = dayKeyAdd(k, 1)) if (seasonFor(cfg, k)) { enTemporada = true; break; }
   const resultado = casas.map(c => {
     const ocupadas = busySet(c);
     let ocup = 0;
@@ -310,7 +313,7 @@ app.get("/api/disponibilidad", (req, res) => {
   }
   const cumpleMinimo = noches >= minNoches;
   const out = {
-    entrada, salida, noches, minimoNoches: minNoches, cumpleMinimo,
+    entrada, salida, noches, minimoNoches: minNoches, cumpleMinimo, enTemporada,
     precioTotal: conPrecio ? { usd: total.usd, uyu: total.uyu } : null,
     casas: resultado,
     alternativas,
@@ -320,6 +323,7 @@ app.get("/api/disponibilidad", (req, res) => {
   const lineas = [
     "Del " + entrada + " al " + salida + " (" + noches + (noches === 1 ? " noche" : " noches") + ")",
     ...resultado.map(r => r.nombre + ": " + (r.libre ? (r.entraLaGente ? "LIBRE" : "libre, pero no entran " + personas + " personas (capacidad " + r.capacidad + ")") : "ocupada (" + r.nochesOcupadas + " de " + noches + " noches)")),
+    enTemporada ? "Incluye noches de temporada de verano (servicio de playa y carga de vehículos eléctricos disponibles)." : "Fuera de temporada de verano.",
     ...(alternativas.length ? ["Fechas cercanas con disponibilidad:", ...alternativas.map(a => "- " + a.entrada + " al " + a.salida + ": " + a.casasLibres.join(", "))] : []),
     "Estadía mínima en esas fechas: " + minNoches + " noches" + (cumpleMinimo ? "" : " (esta consulta no la cumple)"),
     conPrecio ? "Precio total por casa: USD " + total.usd + " / $" + total.uyu : "Precio: consultar",
