@@ -35,7 +35,7 @@ fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 if (!fs.existsSync(DATA_FILE)) fs.copyFileSync(SEED_FILE, DATA_FILE);
 
 app.use(cors());
-app.use(express.json({ limit: "2mb" }));
+app.use(express.json({ limit: "2mb", verify: (req, res, buf) => { req.rawBody = buf; } }));
 app.use("/uploads", express.static(UPLOAD_DIR));
 app.use(express.static(PUBLIC_DIR));
 // La página de reservas es una vista del mismo sitio: /reservar entrega el mismo archivo.
@@ -525,6 +525,9 @@ app.post("/api/upload-video", checkAuth, (req, res) => {
     res.json({ url: "/uploads/" + req.file.filename });
   });
 });
+
+// Asistente de reservas por WhatsApp (se activa con las variables WA_* en Render)
+require("./whatsapp-bot")(app, { readConfig, DATA_DIR, PORT, checkAuth, today });
 
 app.use((err, req, res, next) => {
   if (err) return res.status(400).json({ error: err.message || "Error" });
