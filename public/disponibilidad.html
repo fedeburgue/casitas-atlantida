@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Disponibilidad">
+<title>Disponibilidad — Casitas Atlántida</title>
+<style>
+  :root{--ink:#1a2123; --muted:#6b7678; --line:#e3e7e8; --bg:#f6f7f7; --free:#dff0e4; --freeInk:#22663a; --busy:#26323a; --air:#c0563a; --today:#b8860b;}
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--ink); padding:16px 0 40px; -webkit-text-size-adjust:100%;}
+  .wrap{max-width:1100px; margin:0 auto; padding:0 16px;}
+  h1{font-size:22px; font-weight:600; letter-spacing:.01em;}
+  .sub{color:var(--muted); font-size:13px; margin:4px 0 16px;}
+  .cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; margin-bottom:18px;}
+  .card{background:#fff; border:1px solid var(--line); padding:14px;}
+  .card h3{font-size:14px; font-weight:600; margin-bottom:8px;}
+  .pill{display:inline-block; font-size:12px; font-weight:600; padding:3px 9px; border-radius:99px;}
+  .pill.free{background:var(--free); color:var(--freeInk);}
+  .pill.busy{background:var(--busy); color:#fff;}
+  .card p{font-size:13px; color:var(--muted); margin-top:8px; line-height:1.4;}
+  .bar{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px;}
+  .seg button, .btn{font:inherit; font-size:13px; border:1px solid var(--line); background:#fff; padding:8px 12px; cursor:pointer; color:var(--ink);}
+  .seg button.on{background:var(--ink); color:#fff; border-color:var(--ink);}
+  .grow{flex:1;}
+  .legend{display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--muted); margin:6px 0 10px;}
+  .legend i{display:inline-block; width:12px; height:12px; margin-right:5px; vertical-align:-2px; border:1px solid #cfd6d8;}
+  .gridbox{overflow-x:auto; background:#fff; border:1px solid var(--line); -webkit-overflow-scrolling:touch;}
+  table{border-collapse:separate; border-spacing:0; font-size:11px;}
+  th, td{padding:0; text-align:center;}
+  .name{position:sticky; left:0; z-index:2; background:#fff; text-align:left; padding:0 10px; font-size:13px; font-weight:600; white-space:nowrap; border-right:1px solid var(--line); min-width:76px;}
+  .mon{font-size:11px; font-weight:600; text-align:left; padding:6px 4px 2px; color:var(--ink); white-space:nowrap; border-left:1px solid var(--line);}
+  .dow{color:var(--muted); font-size:10px; padding-top:2px;}
+  .dnum{font-size:11px; padding-bottom:4px; min-width:30px;}
+  .dnum.today{color:var(--today); font-weight:700;}
+  td.c{width:30px; min-width:30px; height:38px; border-top:1px solid var(--line); border-left:1px solid #fff;}
+  td.c.free{background:var(--free);}
+  td.c.busy{background:var(--busy);}
+  td.c.air{background:var(--air);}
+  td.c.today{box-shadow:inset 0 0 0 2px var(--today);}
+  td.c.wk{border-left:1px solid rgba(0,0,0,.08);}
+  h2{font-size:16px; font-weight:600; margin:26px 0 8px;}
+  .finder{background:#fff; border:1px solid var(--line); padding:14px;}
+  .finder .row{display:flex; gap:10px; flex-wrap:wrap; align-items:end; margin-bottom:12px;}
+  label{display:block; font-size:12px; color:var(--muted); margin-bottom:4px;}
+  input[type=date]{font:inherit; font-size:15px; padding:8px; border:1px solid var(--line); background:#fff;}
+  .res{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:8px;}
+  .res div{padding:10px 12px; font-size:13px; border:1px solid var(--line);}
+  .res .ok{background:var(--free); color:var(--freeInk); font-weight:600;}
+  .res .no{background:#f1f2f2; color:var(--muted);}
+  .foot{font-size:12px; color:var(--muted); margin-top:14px; line-height:1.5;}
+  .err{background:#fbeaea; color:#8a2a2a; padding:12px; margin-bottom:12px; font-size:14px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Disponibilidad</h1>
+  <div class="sub" id="stamp">Cargando…</div>
+  <div id="error"></div>
+  <div class="cards" id="cards"></div>
+
+  <div class="bar">
+    <div class="seg" id="range">
+      <button data-d="30">30 días</button>
+      <button data-d="60" class="on">60 días</button>
+      <button data-d="120">120 días</button>
+    </div>
+    <div class="grow"></div>
+    <button class="btn" id="refresh">Actualizar</button>
+  </div>
+  <div class="legend">
+    <span><i style="background:var(--free)"></i>Libre</span>
+    <span><i style="background:var(--busy)"></i>Ocupada (cargada por vos)</span>
+    <span><i style="background:var(--air)"></i>Ocupada (Airbnb)</span>
+  </div>
+  <div class="gridbox"><table id="grid"></table></div>
+
+  <h2>¿Qué casas están libres en estas fechas?</h2>
+  <div class="finder">
+    <div class="row">
+      <div><label for="fIn">Entrada</label><input type="date" id="fIn"></div>
+      <div><label for="fOut">Salida</label><input type="date" id="fOut"></div>
+    </div>
+    <div class="res" id="fRes"><div class="no">Elegí las fechas para ver qué casas están libres.</div></div>
+  </div>
+
+  <p class="foot">Los calendarios de Airbnb se leen cada 15 minutos, así que una reserva nueva de Airbnb puede tardar un rato en aparecer acá. Cada casilla es una noche: la noche del día marcado.</p>
+</div>
+
+<script>
+let CONFIG = null, DAYS = 60;
+const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+const DOW = ["D","L","M","M","J","V","S"];
+const pad = n => String(n).padStart(2, "0");
+const key = d => d.getUTCFullYear() + "-" + pad(d.getUTCMonth() + 1) + "-" + pad(d.getUTCDate());
+function todayKey(){ return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Montevideo" }).format(new Date()); }
+function parse(k){ const [y,m,d] = k.split("-").map(Number); return new Date(Date.UTC(y, m - 1, d)); }
+function addDays(k, n){ const d = parse(k); d.setUTCDate(d.getUTCDate() + n); return key(d); }
+function fmt(k){ const [y,m,d] = k.split("-"); return d + "/" + m; }
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function shortName(c){ return String(c.name).split("·")[0].trim(); }
+
+function sets(id){
+  return {
+    manual: new Set((CONFIG.availability || {})[id] || []),
+    air: new Set(((CONFIG.externalBusy || {})[id]) || [])
+  };
+}
+function isBusy(s, k){ return s.manual.has(k) || s.air.has(k); }
+
+async function load(){
+  const err = document.getElementById("error");
+  try{
+    const r = await fetch("/api/config", { cache: "no-store" });
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    CONFIG = await r.json();
+    err.innerHTML = "";
+    document.getElementById("stamp").textContent = "Actualizado a las " + new Intl.DateTimeFormat("es-UY", { hour:"2-digit", minute:"2-digit", timeZone:"America/Montevideo" }).format(new Date());
+    render();
+  }catch(e){
+    err.innerHTML = '<div class="err">No se pudo cargar la información. Revisá tu conexión y tocá Actualizar.</div>';
+  }
+}
+
+function renderCards(){
+  const t = todayKey();
+  document.getElementById("cards").innerHTML = CONFIG.casitas.map(c=>{
+    const s = sets(c.id);
+    const busyToday = isBusy(s, t);
+    let txt = "";
+    if(busyToday){
+      let k = t, n = 0;
+      while(isBusy(s, k) && n < 400){ k = addDays(k, 1); n++; }
+      txt = n >= 400 ? "Sin fechas libres a la vista." : "Se libera el " + fmt(k) + " (noche libre).";
+    } else {
+      let k = t, n = 0;
+      while(!isBusy(s, k) && n < 400){ k = addDays(k, 1); n++; }
+      txt = n >= 400 ? "Libre a partir de hoy, sin reservas cargadas." : "Libre hasta el " + fmt(addDays(k, -1)) + ". Próxima ocupación: " + fmt(k) + ".";
+    }
+    return `<div class="card"><h3>${esc(shortName(c))}</h3><span class="pill ${busyToday ? "busy" : "free"}">${busyToday ? "Ocupada hoy" : "Libre hoy"}</span><p>${txt}</p></div>`;
+  }).join("");
+}
+
+function renderGrid(){
+  const t = todayKey();
+  const keys = Array.from({length: DAYS}, (_, i) => addDays(t, i));
+  let head1 = '<th class="name"></th>', head2 = '<th class="name"></th>', head3 = '<th class="name"></th>';
+  let i = 0;
+  while(i < keys.length){
+    const mo = keys[i].slice(0, 7);
+    let j = i; while(j < keys.length && keys[j].slice(0, 7) === mo) j++;
+    head1 += `<th class="mon" colspan="${j - i}">${MESES[parseInt(mo.slice(5), 10) - 1]}</th>`;
+    i = j;
+  }
+  keys.forEach(k=>{
+    const d = parse(k);
+    head2 += `<th class="dow">${DOW[d.getUTCDay()]}</th>`;
+    head3 += `<th class="dnum ${k === t ? "today" : ""}">${parseInt(k.slice(8), 10)}</th>`;
+  });
+  const rows = CONFIG.casitas.map(c=>{
+    const s = sets(c.id);
+    let tds = `<td class="name">${esc(shortName(c))}</td>`;
+    keys.forEach(k=>{
+      const cls = s.manual.has(k) ? "busy" : s.air.has(k) ? "air" : "free";
+      const wk = parse(k).getUTCDay() === 1 ? " wk" : "";
+      tds += `<td class="c ${cls}${k === t ? " today" : ""}${wk}" title="${fmt(k)}"></td>`;
+    });
+    return `<tr>${tds}</tr>`;
+  }).join("");
+  document.getElementById("grid").innerHTML = `<tr>${head1}</tr><tr>${head2}</tr><tr>${head3}</tr>${rows}`;
+}
+
+function renderFinder(){
+  const a = document.getElementById("fIn").value, b = document.getElementById("fOut").value;
+  const out = document.getElementById("fRes");
+  if(!a || !b){ out.innerHTML = '<div class="no">Elegí las fechas para ver qué casas están libres.</div>'; return; }
+  if(b <= a){ out.innerHTML = '<div class="no">La salida tiene que ser después de la entrada.</div>'; return; }
+  const nights = Math.round((parse(b) - parse(a)) / 86400000);
+  out.innerHTML = CONFIG.casitas.map(c=>{
+    const s = sets(c.id);
+    let busyNights = 0;
+    for(let k = a; k < b; k = addDays(k, 1)) if(isBusy(s, k)) busyNights++;
+    return busyNights === 0
+      ? `<div class="ok">${esc(shortName(c))}: libre (${nights} ${nights === 1 ? "noche" : "noches"})</div>`
+      : `<div class="no">${esc(shortName(c))}: ocupada (${busyNights} de ${nights} noches)</div>`;
+  }).join("");
+}
+
+function render(){ renderCards(); renderGrid(); renderFinder(); }
+
+document.getElementById("range").addEventListener("click", e=>{
+  const b = e.target.closest("button"); if(!b) return;
+  DAYS = parseInt(b.dataset.d, 10);
+  document.querySelectorAll("#range button").forEach(x=>x.classList.toggle("on", x === b));
+  if(CONFIG) renderGrid();
+});
+document.getElementById("refresh").addEventListener("click", load);
+["fIn","fOut"].forEach(id=>document.getElementById(id).addEventListener("change", ()=>{
+  const a = document.getElementById("fIn"), b = document.getElementById("fOut");
+  if(a.value && (!b.value || b.value <= a.value)) b.value = addDays(a.value, 2);
+  if(CONFIG) renderFinder();
+}));
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) load(); });
+setInterval(load, 5 * 60 * 1000);
+load();
+</script>
+</body>
+</html>

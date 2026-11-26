@@ -40,6 +40,11 @@ app.use("/uploads", express.static(UPLOAD_DIR));
 app.use(express.static(PUBLIC_DIR));
 // La página de reservas es una vista del mismo sitio: /reservar entrega el mismo archivo.
 app.get("/reservar", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "index.html")));
+// Vista rápida de disponibilidad para el propietario (no se indexa; muestra lo mismo que los calendarios públicos).
+app.get("/disponibilidad", (req, res) => {
+  res.set("X-Robots-Tag", "noindex, nofollow");
+  res.sendFile(path.join(PUBLIC_DIR, "disponibilidad.html"));
+});
 // /admin abre el sitio con el panel del propietario (pide contraseña). No se indexa en buscadores.
 app.get("/admin", (req, res) => {
   res.set("X-Robots-Tag", "noindex, nofollow");
