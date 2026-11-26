@@ -45,6 +45,7 @@ app.get("/disponibilidad", (req, res) => {
   res.set("X-Robots-Tag", "noindex, nofollow");
   res.sendFile(path.join(PUBLIC_DIR, "disponibilidad.html"));
 });
+app.get("/privacidad", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "privacidad.html")));
 // /admin abre el sitio con el panel del propietario (pide contraseña). No se indexa en buscadores.
 app.get("/admin", (req, res) => {
   res.set("X-Robots-Tag", "noindex, nofollow");

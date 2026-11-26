@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Política de privacidad · Casitas Atlántida</title>
+<style>
+  body{margin:0;background:#faf6ee;color:#25353a;font:16px/1.65 -apple-system,"Inter",Helvetica,Arial,sans-serif}
+  main{max-width:720px;margin:0 auto;padding:40px 20px 80px}
+  h1{font-size:30px;margin:0 0 4px}
+  h2{font-size:19px;margin:32px 0 6px}
+  p,li{margin:6px 0}
+  .m{color:#5d6b70;font-size:14px}
+  a{color:#25353a}
+</style>
+</head>
+<body>
+<main>
+  <h1>Política de privacidad</h1>
+  <p class="m">Casitas Atlántida · Atlántida, Canelones, Uruguay · Última actualización: noviembre de 2026</p>
+
+  <p>En Casitas Atlántida cuidamos tus datos. Esta página explica qué información recibimos cuando visitás nuestro sitio o nos escribís por WhatsApp, para qué la usamos y cómo podés pedir que la borremos.</p>
+
+  <h2>Qué datos recibimos</h2>
+  <ul>
+    <li><b>Por WhatsApp:</b> tu número de teléfono, tu nombre de perfil si WhatsApp lo comparte, los mensajes que nos escribís y las respuestas que elegís en nuestro asistente (fechas, cantidad de personas, casa elegida, mascota, uso de carga eléctrica y servicio de playa).</li>
+    <li><b>En el sitio web:</b> estadísticas de visitas sin datos personales (cantidad de visitas y de clics en los botones de reserva).</li>
+  </ul>
+
+  <h2>Para qué los usamos</h2>
+  <ul>
+    <li>Responder tu consulta, informarte disponibilidad y precios, y gestionar tu reserva.</li>
+    <li>Avisar al equipo cuando alguien quiere reservar o pide hablar con una persona.</li>
+    <li>Mejorar la atención.</li>
+  </ul>
+  <p>No vendemos ni cedemos tus datos a terceros con fines publicitarios.</p>
+
+  <h2>Con quién se comparten</h2>
+  <p>Los mensajes viajan por la plataforma WhatsApp Business de Meta, que tiene su propia política de privacidad. Los datos de las consultas se guardan en servidores de nuestro proveedor de alojamiento (Render). Solo accede el equipo de Casitas Atlántida.</p>
+
+  <h2>Cuánto tiempo los guardamos</h2>
+  <p>Conservamos los datos de una consulta mientras sea necesario para atenderla y por un tiempo razonable después, para gestionar la reserva y posibles reclamos. Después los eliminamos.</p>
+
+  <h2>Tus derechos</h2>
+  <p>Podés pedirnos en cualquier momento acceder a tus datos, corregirlos o que los eliminemos, de acuerdo con la Ley N.º 18.331 de Protección de Datos Personales de Uruguay.</p>
+
+  <h2>Cómo pedir la eliminación de tus datos</h2>
+  <p>Escribinos por WhatsApp al <a id="wa" href="#">número de Casitas Atlántida</a> con el mensaje "Quiero eliminar mis datos". Borramos tu información y te confirmamos por el mismo medio.</p>
+
+  <h2>Contacto</h2>
+  <p>Por cualquier duda sobre esta política, escribinos por WhatsApp al <span id="num">número de contacto del sitio</span>.</p>
+</main>
+<script>
+  fetch("/api/config").then(r=>r.json()).then(c=>{
+    var n=(c.business&&c.business.whatsappNumber)||"";
+    if(!n)return;
+    document.getElementById("wa").href="https://wa.me/"+n;
+    document.getElementById("num").textContent="+"+n;
+  }).catch(function(){});
+</script>
+</body>
+</html>
