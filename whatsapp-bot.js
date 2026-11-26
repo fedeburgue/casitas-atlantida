@@ -360,6 +360,26 @@ module.exports = function mountWhatsApp(app, { readConfig, DATA_DIR, PORT, check
     } catch (err) { console.error("[wa] webhook", err); }
   });
 
+
+  // Ayuda de configuración: suscribe la app a una cuenta de WhatsApp Business y muestra su estado.
+  // Se abre desde el navegador: /wa-setup?clave=TU_WA_VERIFY_TOKEN&waba=ID_DE_LA_CUENTA
+  app.get("/wa-setup", async (req, res) => {
+    res.set("X-Robots-Tag", "noindex");
+    if (!VERIFY || req.query.clave !== VERIFY) return res.status(403).type("text/plain").send("Clave incorrecta.");
+    const waba = String(req.query.waba || "").replace(/\D/g, "");
+    if (!TOKEN) return res.type("text/plain").send("Falta la variable WA_TOKEN en Render.");
+    if (!waba) return res.type("text/plain").send("Agregá &waba=ID_DE_LA_CUENTA a la dirección.");
+    const g = async (method, p) => {
+      const r = await fetch("https://graph.facebook.com/v25.0/" + p, { method, headers: { Authorization: "Bearer " + TOKEN } });
+      return { estado: r.status, respuesta: await r.json().catch(() => ({})) };
+    };
+    const out = {};
+    if (req.query.suscribir !== "no") out.suscribir_app = await g("POST", waba + "/subscribed_apps");
+    out.apps_suscriptas = await g("GET", waba + "/subscribed_apps");
+    out.numeros = await g("GET", waba + "/phone_numbers?fields=id,display_phone_number,verified_name,status,platform_type");
+    res.type("application/json").send(JSON.stringify(out, null, 2));
+  });
+
   app.get("/api/admin/leads", checkAuth, (req, res) => {
     try { res.json(JSON.parse(fs.readFileSync(LEADS_FILE, "utf-8"))); } catch (e) { res.json([]); }
   });
