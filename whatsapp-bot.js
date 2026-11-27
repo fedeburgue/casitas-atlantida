@@ -405,7 +405,7 @@ module.exports = function mountWhatsApp(app, { readConfig, writeConfig, DATA_DIR
         if (isNaN(m) || m < 0 || m >= d.personas) { await preguntar(from, s); break; }
         d.menores = m;
         const ad = d.personas - m;
-        if (ad <= 4 && m >= 1 && d.personas <= 7) {
+        if (ad <= 4 && m >= 1 && d.personas <= 5) {
           d.excepcion = true;
           await text(from, "Las casas están confeccionadas para *4 personas*, pero con " + ad + (ad === 1 ? " adulto" : " adultos") + " y " + m + (m === 1 ? " menor/bebé" : " menores/bebés") + " lo podemos contemplar en una sola casa 🙂. El propietario te confirma la acomodación al reservar.");
           await calcular(from, s); break;
