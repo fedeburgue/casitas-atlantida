@@ -371,9 +371,13 @@ module.exports = function mountWhatsApp(app, { readConfig, DATA_DIR, PORT, check
       }
       case "pago":
       case "comprobante": {
+        if (id === "cambiar_pago" || (s.step === "comprobante" && /(cambiar|cambio|otra|otro).{0,25}(forma|metodo|medio|pago|pagar)|pagar de otra|otra manera de pagar/.test(low))) {
+          s.step = "pago"; await preguntar(from, s); break;
+        }
         if (id.startsWith("pay_")) {
-          d.pago = id; d.docs = 0; s.step = "comprobante";
+          d.pago = id; d.docs = d.docs || 0; s.step = "comprobante";
           await text(from, textoPago(id, d) + CIERRE_PAGO);
+          await buttons(from, "¿Preferís otra forma de pago?", [["cambiar_pago", "Cambiar forma de pago"]]);
           await avisarDueno("💳 Eligió pagar con: " + ({ pay_airbnb: "Airbnb", pay_brou: "Transferencia BROU", pay_prex: "Prex", pay_abitab: "Abitab/Redpagos" }[id]) + "\nhttps://wa.me/" + from);
           break;
         }
