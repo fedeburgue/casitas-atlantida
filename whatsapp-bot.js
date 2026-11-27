@@ -24,6 +24,7 @@ module.exports = function mountWhatsApp(app, { readConfig, DATA_DIR, PORT, check
   const VERIFY = process.env.WA_VERIFY_TOKEN || "";
   const APP_SECRET = process.env.WA_APP_SECRET || "";
   const OWNER = String(process.env.OWNER_WA || "").replace(/\D/g, "");
+  const IGNORAR = new Set(String(process.env.WA_IGNORAR || "").split(/[,\s]+/).map(x => x.replace(/\D/g, "")).filter(Boolean));
   const SITE = (process.env.SITE_URL || "https://casitas-atlantida.onrender.com").replace(/\/$/, "");
   const graphUrl = () => "https://graph.facebook.com/v25.0/" + (phoneCtx.getStore() || PHONE_ID) + "/messages";
 
@@ -145,6 +146,8 @@ module.exports = function mountWhatsApp(app, { readConfig, DATA_DIR, PORT, check
     if (OWNER) await text(OWNER, msg);
   }
 
+  const INTENCION = /(disponib|reserv|fecha|alquil|casita|precio|tarifa|libre|estad[ií]a|noches|cuanto sale|cuanto cuesta|semana|quincena)/;
+
   /* ---------- conversación ---------- */
   async function preguntar(to, s) {
     const d = s.d, r = d.r || {};
@@ -222,10 +225,10 @@ module.exports = function mountWhatsApp(app, { readConfig, DATA_DIR, PORT, check
     if (!s || now - s.ts > 48 * 3600 * 1000) s = sessions[from] = { step: "inicio", d: {}, ts: now };
     s.ts = now;
     const txt = (input.text || "").trim(), low = norm(txt), id = input.id || "";
+    if (IGNORAR.has(from)) return;
 
     if (/^(menu|reiniciar|empezar|inicio)$/.test(low) || id === "reiniciar") { s.step = "inicio"; s.d = {}; }
-    if (s.step === "humano" && !/^(hola|menu)$/.test(low)) { save(); return; } // lo atiende una persona
-    if (s.step === "humano") { s.step = "inicio"; s.d = {}; }
+    if (s.step === "humano") { save(); return; } // lo atiende una persona; el cliente puede escribir "menu" para volver al asistente
     if (id === "humano" || /(hablar con (alguien|una persona|un humano|el due)|quiero hablar|asesor)/.test(low)) { await derivar(from, s); save(); return; }
 
     const d = s.d;
@@ -246,8 +249,12 @@ module.exports = function mountWhatsApp(app, { readConfig, DATA_DIR, PORT, check
           await text(from, (saludo ? "¡Hola! Soy el asistente de *Casitas Atlántida* 🏖️\n" : "") + "Anoto: *" + fmtLargo(p.entrada) + " al " + fmtLargo(p.salida) + "*.");
           s.step = "personas"; await preguntar(from, s);
         } else if (s.step === "inicio") {
-          await text(from, "¡Hola! Soy el asistente de *Casitas Atlántida* 🏖️ Te ayudo a encontrar casa y reservar.");
-          s.step = "fechas"; await preguntar(from, s);
+          if (id === "consultar" || INTENCION.test(low)) {
+            await text(from, "¡Hola! Soy el asistente de *Casitas Atlántida* 🏖️ Te ayudo a encontrar casa y reservar.");
+            s.step = "fechas"; await preguntar(from, s);
+          } else {
+            await buttons(from, "¡Hola! Soy el asistente de *Casitas Atlántida* 🏖️ ¿Querés consultar disponibilidad?", [["consultar", "Consultar fechas"], ["humano", "Hablar con alguien"]]);
+          }
         } else {
           await text(from, "No pude entender las fechas. Probá así: *3 al 12 de diciembre* o *03/12 al 12/12*.");
         }
@@ -343,6 +350,16 @@ module.exports = function mountWhatsApp(app, { readConfig, DATA_DIR, PORT, check
     res.sendStatus(200);
     try {
       for (const e of (req.body.entry || [])) for (const ch of (e.changes || [])) {
+        if (ch.field === "smb_message_echoes") {
+          for (const m of ((ch.value || {}).message_echoes || [])) {
+            const to = String(m.to || "").replace(/\D/g, "");
+            if (!to) continue;
+            sessions[to] = { step: "humano", d: {}, ts: Date.now() };
+            console.log("[wa] respondiste vos a", to, "- el asistente se silencia con ese cliente");
+          }
+          save();
+          continue;
+        }
         for (const m of ((ch.value || {}).messages || [])) {
           if (seen.has(m.id)) continue;
           seen.set(m.id, Date.now());
