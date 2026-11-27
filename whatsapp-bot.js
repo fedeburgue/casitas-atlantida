@@ -18,7 +18,7 @@ const crypto = require("crypto");
 const { AsyncLocalStorage } = require("async_hooks");
 const phoneCtx = new AsyncLocalStorage(); // número de WhatsApp que recibió el mensaje (se responde desde el mismo)
 
-module.exports = function mountWhatsApp(app, { readConfig, DATA_DIR, PORT, checkAuth, today }) {
+module.exports = function mountWhatsApp(app, { readConfig, writeConfig, DATA_DIR, PORT, checkAuth, today }) {
   const TOKEN = process.env.WA_TOKEN || "";
   const PHONE_ID = process.env.WA_PHONE_ID || "";
   const VERIFY = process.env.WA_VERIFY_TOKEN || "";
@@ -142,9 +142,37 @@ module.exports = function mountWhatsApp(app, { readConfig, DATA_DIR, PORT, check
       "Precio informado: " + (r.precioTotal ? "USD " + r.precioTotal.usd + " / $" + r.precioTotal.uyu : "a confirmar"),
     ].join("\n");
   }
-  async function avisarDueno(msg) {
-    if (OWNER) await text(OWNER, msg);
+  const NTFY = String(process.env.NTFY_TOPIC || "").trim();
+  async function notificar(titulo, msg, click) {
+    if (!NTFY) return;
+    try {
+      await fetch("https://ntfy.sh/", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic: NTFY, title: titulo, message: cut(msg, 3500), priority: 4, tags: ["house"], click: click || undefined }),
+      });
+    } catch (e) { console.error("[wa] no se pudo enviar la notificación", e.message); }
   }
+  async function avisarDueno(msg, click, titulo) {
+    await Promise.all([
+      OWNER ? text(OWNER, msg + (click ? "\n" + click : "")) : null,
+      notificar(titulo || "Casitas Atlántida", msg, click),
+    ]);
+  }
+
+  /* ---------- bloqueo de fechas y confirmación por enlace ---------- */
+  const dia = (k, n) => { const d = new Date(k + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+  function bloquearFechas(casaId, entrada, salida) {
+    const cfg = readConfig();
+    cfg.availability = cfg.availability || {};
+    const set = new Set(cfg.availability[casaId] || []);
+    for (let k = entrada; k < salida; k = dia(k, 1)) set.add(k);
+    cfg.availability[casaId] = [...set].sort();
+    writeConfig(cfg);
+  }
+  const firma = c => crypto.createHmac("sha256", VERIFY || "sin-clave").update("confirmar:" + c).digest("hex").slice(0, 24);
+  const urlConfirmar = c => SITE + "/wa-confirmar?c=" + c + "&k=" + firma(c);
+  const CONF_FILE = path.join(DATA_DIR, "wa-confirmadas.json");
+  const leerConf = () => { try { return JSON.parse(fs.readFileSync(CONF_FILE, "utf-8")); } catch (e) { return {}; } };
 
   const INTENCION = /(disponib|reserv|fecha|alquil|casita|precio|tarifa|libre|estad[ií]a|noches|cuanto sale|cuanto cuesta|semana|quincena)/;
 
@@ -272,7 +300,7 @@ module.exports = function mountWhatsApp(app, { readConfig, DATA_DIR, PORT, check
   async function derivar(to, s) {
     s.step = "humano";
     await text(to, "Perfecto, te paso con una persona del equipo. Te escribe a la brevedad. 🙌");
-    await avisarDueno("🙋 Un cliente pidió hablar con una persona\n" + resumen(s, to));
+    await avisarDueno("🙋 Un cliente pidió hablar con una persona\n" + resumen(s, to), "https://wa.me/" + to, "Pidió hablar con vos");
     addLead({ tipo: "humano", cliente: to, d: s.d });
   }
 
@@ -361,7 +389,7 @@ module.exports = function mountWhatsApp(app, { readConfig, DATA_DIR, PORT, check
       case "precio": {
         if (id === "reservar") {
           s.step = "pago";
-          await avisarDueno("🟢 Quiere RESERVAR (eligiendo forma de pago)\n" + resumen(s, from));
+          await avisarDueno("🟢 Quiere RESERVAR (eligiendo forma de pago)\n" + resumen(s, from), "https://wa.me/" + from, "Quiere reservar");
           addLead({ tipo: "reservar", cliente: from, d });
           await preguntar(from, s);
         } else if (id === "duda") { await derivar(from, s); }
@@ -396,14 +424,18 @@ module.exports = function mountWhatsApp(app, { readConfig, DATA_DIR, PORT, check
           const c2 = (r2.casas || []).find(x => x.id === d.casa);
           libre = !!(c2 && c2.libre);
         } catch (e) {}
+        addLead({ tipo: "documentacion", cliente: from, phoneId: phoneCtx.getStore() || PHONE_ID, d });
         if (!libre || process.env.WA_CONFIRMAR_AUTO === "no") {
           await text(from, "¡Gracias! Recibimos todo ✅ Estamos verificando y te confirmamos la reserva en breve. 🙏");
-          await avisarDueno((libre ? "✅ Llegaron comprobante y documento (confirmación manual)" : "⚠️ REVISAR: llegaron comprobante y documento pero la casa figura ocupada en esas fechas") + "\n" + resumen(s, from));
+          if (libre) await avisarDueno("✅ Llegaron comprobante y documento. Revisá el pago y tocá este enlace para confirmar: se bloquean las fechas y el cliente recibe los detalles.\n" + resumen(s, from), urlConfirmar(from), "Reserva por confirmar");
+          else await avisarDueno("⚠️ REVISAR: llegaron comprobante y documento pero la casa figura ocupada en esas fechas.\n" + resumen(s, from), "https://wa.me/" + from, "Revisar reserva");
         } else {
           await text(from, detallesReserva(d));
-          await avisarDueno("✅ RESERVA CONFIRMADA automáticamente (comprobante + documento recibidos). Verificá el pago.\n" + resumen(s, from));
+          try { bloquearFechas(d.casa, d.entrada, d.salida); } catch (e) { console.error("[wa] no se pudieron bloquear las fechas", e.message); }
+          const cf = leerConf(); cf[from + ":" + d.entrada + ":" + d.salida] = new Date().toISOString();
+          try { fs.writeFileSync(CONF_FILE, JSON.stringify(cf)); } catch (e) {}
+          await avisarDueno("✅ RESERVA CONFIRMADA y fechas bloqueadas (Airbnb las toma en su próxima sincronización). Verificá el pago.\n" + resumen(s, from), "https://wa.me/" + from, "Reserva confirmada");
         }
-        addLead({ tipo: "documentacion", cliente: from, d });
         s.step = "humano"; break;
       }
       default:
@@ -476,6 +508,29 @@ module.exports = function mountWhatsApp(app, { readConfig, DATA_DIR, PORT, check
     out.apps_suscriptas = await g("GET", waba + "/subscribed_apps");
     out.numeros = await g("GET", waba + "/phone_numbers?fields=id,display_phone_number,verified_name,status,platform_type");
     res.type("application/json").send(JSON.stringify(out, null, 2));
+  });
+
+  app.get("/wa-confirmar", async (req, res) => {
+    res.set("X-Robots-Tag", "noindex");
+    const pag = (t, m) => res.type("html").send('<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><body style="font:18px/1.5 -apple-system,sans-serif;max-width:520px;margin:48px auto;padding:0 20px"><h2>' + t + "</h2><p>" + m + "</p></body>");
+    const c = String(req.query.c || "").replace(/\D/g, "");
+    if (!c || String(req.query.k || "") !== firma(c)) return pag("Enlace no válido", "Este enlace no es correcto o está vencido.");
+    let leads = [];
+    try { leads = JSON.parse(fs.readFileSync(LEADS_FILE, "utf-8")); } catch (e) {}
+    const lead = leads.filter(l => l.tipo === "documentacion" && l.cliente === c).pop();
+    if (!lead) return pag("No encontré la reserva", "No hay una reserva pendiente para ese cliente.");
+    const d = lead.d, clave = c + ":" + d.entrada + ":" + d.salida, cf = leerConf();
+    if (cf[clave]) return pag("Ya estaba confirmada ✅", "Esta reserva ya se confirmó antes. No se envió nada de nuevo.");
+    try {
+      const r2 = await disp(d.entrada, d.salida, d.personas);
+      const c2 = (r2.casas || []).find(x => x.id === d.casa);
+      if (!(c2 && c2.libre)) return pag("Ojo: la casa figura ocupada ⚠️", "Esas fechas ya están ocupadas en tu calendario. No confirmé nada. Revisalo antes de avisarle al cliente.");
+    } catch (e) {}
+    try { bloquearFechas(d.casa, d.entrada, d.salida); } catch (e) { return pag("No pude bloquear las fechas", "Probá de nuevo en un rato."); }
+    await phoneCtx.run(lead.phoneId || PHONE_ID, () => text(c, detallesReserva(d)));
+    cf[clave] = new Date().toISOString();
+    try { fs.writeFileSync(CONF_FILE, JSON.stringify(cf)); } catch (e) {}
+    pag("Reserva confirmada ✅", "Bloqueé " + d.casaNombre + " del " + d.entrada + " al " + d.salida + " y le envié los detalles al cliente (+" + c + ").");
   });
 
   app.get("/api/admin/leads", checkAuth, (req, res) => {

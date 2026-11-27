@@ -528,7 +528,7 @@ app.post("/api/upload-video", checkAuth, (req, res) => {
 });
 
 // Asistente de reservas por WhatsApp (se activa con las variables WA_* en Render)
-require("./whatsapp-bot")(app, { readConfig, DATA_DIR, PORT, checkAuth, today });
+require("./whatsapp-bot")(app, { readConfig, writeConfig, DATA_DIR, PORT, checkAuth, today });
 
 app.use((err, req, res, next) => {
   if (err) return res.status(400).json({ error: err.message || "Error" });
