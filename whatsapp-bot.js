@@ -312,7 +312,8 @@ module.exports = function mountWhatsApp(app, { readConfig, writeConfig, DATA_DIR
     const txt = (input.text || "").trim(), low = norm(txt), id = input.id || "";
     if (IGNORAR.has(from)) return;
 
-    if (/^(menu|reiniciar|empezar|inicio)$/.test(low) || id === "reiniciar") { s.step = "inicio"; s.d = {}; }
+    let reinicio = false;
+    if (/^(menu|reiniciar|empezar|inicio)$/.test(low) || id === "reiniciar") { s.step = "inicio"; s.d = {}; reinicio = true; }
     if (s.step === "humano") { save(); return; } // lo atiende una persona; el cliente puede escribir "menu" para volver al asistente
     if (id === "humano" || /(hablar con (alguien|una persona|un humano|el due)|quiero hablar|asesor)/.test(low)) { await derivar(from, s); save(); return; }
 
@@ -334,7 +335,7 @@ module.exports = function mountWhatsApp(app, { readConfig, writeConfig, DATA_DIR
           await text(from, (saludo ? "¡Hola! Soy el asistente de *Casitas Atlántida* 🏖️\n" : "") + "Anoto: *" + fmtLargo(p.entrada) + " al " + fmtLargo(p.salida) + "*.");
           s.step = "personas"; await preguntar(from, s);
         } else if (s.step === "inicio") {
-          if (id === "consultar" || INTENCION.test(low)) {
+          if (id === "consultar" || reinicio || INTENCION.test(low)) {
             await text(from, "¡Hola! Soy el asistente de *Casitas Atlántida* 🏖️ Te ayudo a encontrar casa y reservar.");
             s.step = "fechas"; await preguntar(from, s);
           } else if (process.env.WA_SALUDO !== "no") {
@@ -410,7 +411,16 @@ module.exports = function mountWhatsApp(app, { readConfig, writeConfig, DATA_DIR
           break;
         }
         if (s.step === "pago") { await preguntar(from, s); break; }
-        if (!input.media) { await text(from, "Cuando los tengas, mandame por acá el *comprobante* y la *foto del documento de identidad del huésped principal*. 🙌"); break; }
+        if (!input.media) {
+          // El recordatorio sale una sola vez; después el asistente se calla y te avisa lo que escribe el cliente.
+          if (!d.recordado) {
+            d.recordado = Date.now();
+            await text(from, "Cuando los tengas, mandame por acá el *comprobante* y la *foto del documento de identidad del huésped principal*. 🙌\nSi tenés alguna duda, escribí *hablar con alguien* y te atiende una persona.");
+          } else {
+            await avisarDueno("💬 El cliente escribió mientras espera para reservar: \"" + cut(txt, 300) + "\"\n" + resumen(s, from), "https://wa.me/" + from, "Mensaje de un cliente");
+          }
+          break;
+        }
         d.docs = (d.docs || 0) + 1;
         if (d.docs < 2) {
           await text(from, "Recibí 1 archivo ✅ Para confirmar necesito *los dos*: el comprobante de pago (o captura de Airbnb) y la foto del documento de identidad del huésped principal. Me falta 1 más.");
