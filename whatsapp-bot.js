@@ -113,7 +113,7 @@ module.exports = function mountWhatsApp(app, { readConfig, writeConfig, DATA_DIR
   }
 
   async function disp(entrada, salida, personas) {
-    const r = await fetch("http://127.0.0.1:" + PORT + "/api/disponibilidad?entrada=" + entrada + "&salida=" + salida + "&personas=" + (personas || 0));
+    const r = await fetch("http://127.0.0.1:" + PORT + "/api/disponibilidad?entrada=" + entrada + "&salida=" + salida + "&personas=0");
     return r.json();
   }
 
@@ -134,7 +134,7 @@ module.exports = function mountWhatsApp(app, { readConfig, writeConfig, DATA_DIR
       "📋 Consulta nueva por WhatsApp",
       "Cliente: https://wa.me/" + from,
       "Fechas: " + fmtLargo(d.entrada) + " al " + fmtLargo(d.salida) + " (" + (r.noches || "?") + " noches)",
-      "Personas: " + (d.personas || "?"),
+      "Personas: " + (d.personas || "?") + (d.menores ? " (" + d.menores + " menores/bebés)" : "") + (d.excepcion ? " ⚠️ supera las 4 personas: confirmar" : "") + (d.multi ? " ⚠️ necesita " + d.multi + " casas" : ""),
       "Casa: " + (d.casaNombre || "sin elegir"),
       "Mascota: " + ({ no: "no", una: "una", mas: "más de una" }[d.mascota] || "sin dato"),
       "Carga eléctrica: " + (d.carga === "si" ? "sí" : d.carga === "no" ? "no" : "sin dato"),
@@ -264,10 +264,13 @@ module.exports = function mountWhatsApp(app, { readConfig, writeConfig, DATA_DIR
       case "personas":
         return list(to, "¿Cuántas personas son?", "Elegir cantidad",
           [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => ["p_" + n, n + (n === 1 ? " persona" : " personas")]));
+      case "menores":
+        return list(to, "Las casas están pensadas para *4 personas* 🏡. Para ver cómo acomodarlos: de las " + d.personas + " personas, ¿cuántos son *menores o bebés*?", "Elegir cantidad",
+          [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].filter(n => n < d.personas).map(n => ["mn_" + n, n === 0 ? "Ninguno, todos adultos" : n + (n === 1 ? " menor/bebé" : " menores/bebés")]));
       case "casa": {
         const libres = (r.casas || []).filter(c => c.libre && c.entraLaGente);
         return list(to, "¡Buenas noticias! Para " + fmt(d.entrada) + " al " + fmt(d.salida) + " hay " + (libres.length === 1 ? "1 casa libre" : libres.length + " casas libres") + ". ¿Cuál querés ver?",
-          "Elegir casa", libres.map(c => ["c_" + c.id, c.nombre, (c.capacidad ? "Hasta " + c.capacidad + " personas" : "") + (c.dormitorios ? " · " + c.dormitorios + " dorm." : "")]));
+          "Elegir casa", libres.map(c => ["c_" + c.id, c.nombre, "Hasta 4 personas" + (c.dormitorios ? " · " + c.dormitorios + " dorm." : "")]));
       }
       case "fotos":
         return buttons(to, "¿Querés ver las fotos y comodidades de " + d.casaNombre + "?", [["fotos_si", "Sí, mostrame"], ["fotos_no", "Ahora no"]]);
@@ -321,7 +324,7 @@ module.exports = function mountWhatsApp(app, { readConfig, writeConfig, DATA_DIR
       s.step = "alternativas";
       const rows = d.alts.map((a, i) => ["a_" + i, fmt(a.entrada) + " al " + fmt(a.salida), a.casasLibres.join(", ")]);
       rows.push(["otras", "Probar otras fechas"], ["humano", "Hablar con alguien"]);
-      return list(to, "Para esas fechas no tenemos casas libres para " + d.personas + " personas 😕. Pero estas fechas cercanas sí tienen lugar:", "Ver fechas", rows);
+      return list(to, "Para esas fechas no tenemos casas libres 😕. Pero estas fechas cercanas sí tienen lugar:", "Ver fechas", rows);
     }
     s.step = "fechas";
     await text(to, "Para esas fechas no tenemos disponibilidad 😕. Probá con otras fechas o escribí *hablar con alguien*.");
@@ -393,7 +396,33 @@ module.exports = function mountWhatsApp(app, { readConfig, writeConfig, DATA_DIR
       case "personas": {
         const n = id.startsWith("p_") ? +id.slice(2) : parseInt(txt, 10);
         if (!n || n < 1 || n > 20) { await preguntar(from, s); break; }
-        d.personas = n; await calcular(from, s); break;
+        d.personas = n; d.menores = 0; d.excepcion = false;
+        if (n > 4) { s.step = "menores"; await preguntar(from, s); break; }
+        await calcular(from, s); break;
+      }
+      case "menores": {
+        const m = id.startsWith("mn_") ? +id.slice(3) : (/^\d+$/.test(txt) ? +txt : NaN);
+        if (isNaN(m) || m < 0 || m >= d.personas) { await preguntar(from, s); break; }
+        d.menores = m;
+        const ad = d.personas - m;
+        if (ad <= 4 && m >= 1 && d.personas <= 7) {
+          d.excepcion = true;
+          await text(from, "Las casas están confeccionadas para *4 personas*, pero con " + ad + (ad === 1 ? " adulto" : " adultos") + " y " + m + (m === 1 ? " menor/bebé" : " menores/bebés") + " lo podemos contemplar en una sola casa 🙂. El propietario te confirma la acomodación al reservar.");
+          await calcular(from, s); break;
+        }
+        // grupo grande: hacen falta varias casas
+        const K = Math.ceil(d.personas / 4);
+        const r = await disp(d.entrada, d.salida, 0);
+        if (r.error) { s.step = "fechas"; await text(from, r.error); await preguntar(from, s); break; }
+        const libres = (r.casas || []).filter(c => c.libre);
+        let msg = "Cada casa es para *hasta 4 personas*. Para " + d.personas + " personas necesitarían *" + K + " casas* 🏡🏡";
+        if (libres.length >= K) msg += ".\n✅ Para " + fmt(d.entrada) + " al " + fmt(d.salida) + " hay " + libres.length + " casas libres.";
+        else msg += ".\n⚠️ Para " + fmt(d.entrada) + " al " + fmt(d.salida) + " hay " + libres.length + (libres.length === 1 ? " casa libre" : " casas libres") + ", así que habría que coordinar.";
+        if (r.precioTotal && libres.length >= K) msg += "\n💰 Referencia: USD " + r.precioTotal.usd + " por casa × " + K + " = *USD " + (r.precioTotal.usd * K) + "*.";
+        msg += "\nLa reserva de varias casas la coordina una persona del equipo para dejarlas juntas y ajustar los detalles.";
+        d.multi = K;
+        await buttons(from, msg, [["humano", "Hablar con alguien"], ["reiniciar", "Cambiar personas"]]);
+        break;
       }
       case "casa": {
         const c = id.startsWith("c_") ? (d.r.casas || []).find(x => "c_" + x.id === id) : null;
