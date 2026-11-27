@@ -345,6 +345,12 @@ module.exports = function mountWhatsApp(app, { readConfig, writeConfig, DATA_DIR
 
     let reinicio = false;
     if (/^(menu|reiniciar|empezar|inicio)$/.test(low) || id === "reiniciar") { s.step = "inicio"; s.d = {}; reinicio = true; }
+    if (input.audio) {
+      if (s.step === "humano") { save(); return; }
+      await buttons(from, "No puedo escuchar audios 🙏 ¿Me lo escribís por acá? O elegí una opción:", [["reiniciar", "Ver menú"], ["humano", "Hablar con alguien"]]);
+      await avisarDueno("🎤 Te mandó un audio: https://wa.me/" + from + " (el bot no puede escucharlo).", "https://wa.me/" + from, "Audio recibido");
+      save(); return;
+    }
     if (s.step === "humano") { save(); return; } // lo atiende una persona; el cliente puede escribir "menu" para volver al asistente
     if (id === "humano" || /(hablar con (alguien|una persona|un humano|el due)|quiero hablar|asesor)/.test(low)) { await derivar(from, s); save(); return; }
 
@@ -530,7 +536,8 @@ module.exports = function mountWhatsApp(app, { readConfig, writeConfig, DATA_DIR
             const i = m.interactive || {};
             const rep = i.button_reply || i.list_reply || {};
             input = { id: rep.id, text: rep.title };
-          } else input = { media: true };
+          } else if (m.type === "audio") input = { audio: true };
+          else input = { media: true };
           phoneCtx.run(((ch.value || {}).metadata || {}).phone_number_id || PHONE_ID, () => handle(m.from, input)).catch(err => console.error("[wa] error", err));
         }
       }
