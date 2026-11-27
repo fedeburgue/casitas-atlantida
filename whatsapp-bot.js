@@ -159,14 +159,15 @@ module.exports = function mountWhatsApp(app, { readConfig, DATA_DIR, PORT, check
     if (tipo === "pay_brou") return "🏦 *Transferencia BROU*\n" + (envT("WA_PAGO_BROU") || falta);
     if (tipo === "pay_prex") return "🌎 *Prex* (Uruguay / Argentina / exterior)\n" + (envT("WA_PAGO_PREX") || falta);
     if (tipo === "pay_abitab") return "🏪 *Red de Cobranzas (Abitab o Redpagos)*\n" + (envT("WA_PAGO_ABITAB") || falta);
-    const link = envT("WA_AIRBNB_LINK");
+    const linkCasa = envT("WA_AIRBNB_CASA" + d.casa);
+    const link = linkCasa || envT("WA_AIRBNB_LINK");
     return "💳 *Tarjeta de crédito vía Airbnb*\n" +
-      "Perfil de Casitas Atlántida en Airbnb:\n" + (link || "(te lo enviamos enseguida)") + "\n\n" +
+      (linkCasa ? "Publicación de *" + (d.casaNombre || "la casa") + "* en Airbnb:\n" : "Perfil de Casitas Atlántida en Airbnb:\n") + (link || "(te lo enviamos enseguida)") + "\n\n" +
       "⚠️ Airbnb cobra una comisión propia de la aplicación, de aproximadamente *19,6% adicional* sobre el precio directo.\n\n" +
       "Pasos:\n" +
       "1️⃣ Si todavía no tenés cuenta: descargá la app de Airbnb (App Store o Google Play) o entrá a airbnb.com.\n" +
       "2️⃣ Tocá *Registrarte* y creá tu usuario con email, teléfono, Google o Apple. Completá tu nombre y fecha de nacimiento, y confirmá tu email o teléfono.\n" +
-      "3️⃣ Abrí el perfil de Casitas Atlántida con el enlace de arriba y elegí *" + (d.casaNombre || "la casa") + "*.\n" +
+      (linkCasa ? "3️⃣ Abrí el enlace de arriba: te lleva directo a la casa que elegiste.\n" : "3️⃣ Abrí el perfil de Casitas Atlántida con el enlace de arriba y elegí *" + (d.casaNombre || "la casa") + "*.\n") +
       "4️⃣ Seleccioná las fechas " + fmtLargo(d.entrada) + " al " + fmtLargo(d.salida) + " y pagá con tarjeta dentro de Airbnb.\n" +
       "5️⃣ Mandame por acá una captura de la reserva en Airbnb.";
   }
