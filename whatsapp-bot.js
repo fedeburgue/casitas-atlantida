@@ -224,6 +224,37 @@ module.exports = function mountWhatsApp(app, { readConfig, writeConfig, DATA_DIR
     ].join("\n");
   }
 
+
+  /* ---------- preguntas frecuentes (respuestas basadas en el reglamento de estadía) ---------- */
+  const FAQ = [
+    { id: "faq_normas", titulo: "Normas completas", desc: "Reglamento de estadía", re: /(normas|reglamento|reglas)/,
+      r: "📖 Normas de estadía completas:\n" + NORMAS },
+    { id: "faq_ubicacion", titulo: "Ubicación y playa", desc: "Dónde estamos y qué tan cerca está la playa", re: /(ubicaci|direccion|donde (queda|esta|estan)|como (llego|llegar|se llega)|mapa|eden rock|(distancia|cerca|lejos|metros|cuadras).{0,30}playa|playa.{0,30}(cerca|lejos|distancia|metros|cuadras))/,
+      r: "📍 *Ubicación* (Atlántida, Canelones)\n🏖️ Estamos a 300 metros de la playa, a pasitos de la playa Eden Rock, la más linda.\n• Casa 3: " + MAPA_CASA3 + "\n• Casas 1, 2 y 4: " + MAPA_OTRAS },
+    { id: "faq_checkin", titulo: "Check-in e ingreso", desc: "Horarios, llaves e instrucciones de acceso", re: /(check.?in|check.?out|a que hora|horario de (llegada|salida|entrada|ingreso)|hora de (llegada|salida|entrada|ingreso)|ingreso|llaves|como entro|instrucciones de acceso)/,
+      r: "🕑 *Check-in y check-out*\n• Check-in: desde las 14:00 h.\n• Check-out: hasta las 10:00 h.\nSi necesitás otro horario, consultanos antes y lo coordinamos. Quedarse después del horario de salida sin autorización puede generar cargos adicionales.\n\n🔑 *Ingreso*\nUnos días antes de tu llegada te enviamos las instrucciones de acceso a la casa, siempre que la seña esté paga. Si el pago se hace al ingresar, coordinamos la entrega de las llaves contra el pago." },
+    { id: "faq_mascotas", titulo: "Mascotas", desc: "Qué normas hay", re: /(mascota|perro|gato|perrito)/,
+      r: "🐾 *Mascotas*\nSe acepta *una* mascota por unidad, avisando al reservar.\n• Tiene que traer su propia cama y recipientes de comida y agua.\n• No puede subirse a camas, colchones ni sillones.\n• Si deja pelos, olores o manchas que requieran limpieza especial, se cobra USD 100." },
+    { id: "faq_equipamiento", titulo: "Equipamiento", desc: "Wifi, aire, cocina y parrillero", re: /(wifi|wi-fi|internet|\baire\b|climatizacion|calefaccion|cocina|heladera|microondas|tostadora|utensilios|vajilla|parrillero|parrilla|barbacoa|horno de le)/,
+      r: "🏡 *Equipamiento*\n• Wifi de alta velocidad.\n• Aire acondicionado en todas las casas. Son casas modernas que aíslan muy bien la temperatura exterior.\n• Cocina equipada: cocina a gas, heladera, tostadora, microondas y todos los utensilios necesarios para cocinar.\n• Parrillero independiente en cada casa.\n• La Casa 3 además tiene barbacoa cerrada con horno de leña.\n\n❄️ Pedimos usar el aire con responsabilidad: en invierno entre 21 y 23 °C, en verano entre 24 y 26 °C, con puertas y ventanas cerradas." },
+    { id: "faq_cancelaciones", titulo: "Cancelaciones y cambios", desc: "Reprogramación de la reserva", re: /(cancel|reprogram|reembols|devoluc|devuelven|no puedo viajar|imprevisto)/,
+      r: "🔄 *Cancelaciones y cambios*\n• Avisanos con la mayor anticipación posible.\n• En casos de fuerza mayor se puede *reprogramar* la reserva, según disponibilidad.\n• La seña no se reembolsa, pero se ofrece la reprogramación.\nCualquier cambio de fechas o de cantidad de huéspedes se comunica y se autoriza antes." },
+    { id: "faq_incluye", titulo: "Qué incluye", desc: "Ropa de cama, playa, carga eléctrica", re: /(que incluye|incluye|ropa de cama|sabanas|toalla|sombrilla|sillas de playa|servicio de playa|carga (de )?(auto|vehiculo)|estacion de carga|auto electrico)/,
+      r: "🛏️ *Qué incluye*\n• Ropa de cama.\n• Luz y agua, con uso razonable.\n• Servicio de playa en verano: hasta 4 sillas y una sombrilla por casa.\n🧴 Traé tus toallas personales.\n⚡ Estación de carga para vehículos eléctricos: 1,8 a 2,2 kW (carga lenta). En verano es gratuita; fuera de verano cuesta $300 UYU por carga completa. Se coordina con nosotros antes de la estadía." },
+    { id: "faq_estacionamiento", titulo: "Estacionamiento", desc: "Dónde dejar el auto", re: /(estacionamiento|cochera|garage|parking|donde (dejo|estaciono))/,
+      r: "🚗 *Estacionamiento*\nHay estacionamiento privado para los huéspedes y los vehículos informados. No se pueden bloquear accesos ni usar espacios de otras unidades. No nos hacemos responsables por objetos dejados dentro de los vehículos." },
+    { id: "faq_ruidos", titulo: "Ruidos, visitas y fumar", desc: "Normas de convivencia", re: /(fiesta|evento|ruido|visita|fumar|cigarr|horario de descanso|silencio)/,
+      r: "🤫 *Convivencia*\n• Horario de descanso: de 23:00 a 08:00 h.\n• No se permiten fiestas, eventos ni reuniones.\n• Solo se alojan las personas declaradas en la reserva; las visitas requieren autorización previa, aunque no pernocten.\n• Está prohibido fumar dentro de las viviendas." },
+    { id: "faq_pago", titulo: "Seña y formas de pago", desc: "Cómo se confirma la reserva", re: /(sena|medios? de pago|formas? de pago|como (pago|abono)|transferencia|cuenta bancaria|tarjeta)/,
+      r: "💳 *Seña y formas de pago*\nLa seña equivale al valor de *una noche*. Podés pagarla con:\n• Tarjeta de crédito vía Airbnb (Airbnb suma una comisión propia de aprox. 19,6%).\n• Transferencia BROU.\n• Prex (Uruguay, Argentina y exterior).\n• Abitab o Redpagos.\nLa reserva queda confirmada al enviar el comprobante y la foto del documento del huésped principal. Para empezar, escribí *reservar*." },
+  ];
+  const FAQ_MENU = /^(preguntas( frecuentes)?|ayuda|info|informacion|menu de preguntas)$/;
+  const responderFaq = async (to, f) => {
+    await text(to, f.r);
+    await buttons(to, "¿Te ayudo con algo más?", [["faq_menu", "Más preguntas"], ["consultar", "Consultar fechas"], ["humano", "Hablar con alguien"]]);
+  };
+  const menuFaq = (to) => list(to, "Estas son las consultas más frecuentes. ¿Sobre qué querés saber?", "Ver preguntas", FAQ.map(f => [f.id, f.titulo, f.desc]));
+
   /* ---------- conversación ---------- */
   async function preguntar(to, s) {
     const d = s.d, r = d.r || {};
@@ -327,6 +358,12 @@ module.exports = function mountWhatsApp(app, { readConfig, writeConfig, DATA_DIR
           if (a) { d.entrada = a.entrada; d.salida = a.salida; await calcular(from, s); break; }
         }
         if (id === "otras") { s.step = "fechas"; await preguntar(from, s); break; }
+        if (s.step === "inicio") {
+          if (id === "faq_menu" || (!id && FAQ_MENU.test(low))) { await menuFaq(from); break; }
+          const f = id.startsWith("faq_") ? FAQ.find(x => x.id === id)
+            : (!id && !reinicio && !INTENCION.test(low) && !parseDates(txt)) ? FAQ.find(x => x.re.test(low)) : null;
+          if (f) { await responderFaq(from, f); break; }
+        }
         const p = parseDates(txt);
         if (p && p.error) { await text(from, "Esa fecha ya pasó. ¿Para qué fechas buscás?"); break; }
         if (p) {
@@ -339,7 +376,7 @@ module.exports = function mountWhatsApp(app, { readConfig, writeConfig, DATA_DIR
             await text(from, "¡Hola! Soy el asistente de *Casitas Atlántida* 🏖️ Te ayudo a encontrar casa y reservar.");
             s.step = "fechas"; await preguntar(from, s);
           } else if (process.env.WA_SALUDO !== "no") {
-            await buttons(from, "¡Hola! Soy el asistente de *Casitas Atlántida* 🏖️ ¿Querés consultar disponibilidad?", [["consultar", "Consultar fechas"], ["humano", "Hablar con alguien"]]);
+            await buttons(from, "¡Hola! Soy el asistente de *Casitas Atlántida* 🏖️ ¿En qué te ayudo?", [["consultar", "Consultar fechas"], ["faq_menu", "Preguntas frecuentes"], ["humano", "Hablar con alguien"]]);
           }
           // con WA_SALUDO=no, un mensaje sin intención de reserva no recibe respuesta automática (lo atendés vos)
         } else {
