@@ -148,6 +148,53 @@ module.exports = function mountWhatsApp(app, { readConfig, DATA_DIR, PORT, check
 
   const INTENCION = /(disponib|reserv|fecha|alquil|casita|precio|tarifa|libre|estad[ií]a|noches|cuanto sale|cuanto cuesta|semana|quincena)/;
 
+
+  const envT = k => String(process.env[k] || "").replace(/\\n/g, "\n").trim();
+  const NORMAS = "https://drive.google.com/file/d/1z5brQCMkLuB8cXDV9EDTqHZg4zdmCIAw/view";
+  const MAPA_CASA3 = "https://maps.app.goo.gl/fVVYPUD3sChMaahK8?g_st=ic";
+  const MAPA_OTRAS = "https://maps.app.goo.gl/Lpq2exrukpxQosmH7";
+
+  function textoPago(tipo, d) {
+    const falta = "Te enviamos los datos enseguida por acá.";
+    if (tipo === "pay_brou") return "🏦 *Transferencia BROU*\n" + (envT("WA_PAGO_BROU") || falta);
+    if (tipo === "pay_prex") return "🌎 *Prex* (Uruguay / Argentina / exterior)\n" + (envT("WA_PAGO_PREX") || falta);
+    if (tipo === "pay_abitab") return "🏪 *Red de Cobranzas (Abitab o Redpagos)*\n" + (envT("WA_PAGO_ABITAB") || falta);
+    const link = envT("WA_AIRBNB_LINK");
+    return "💳 *Tarjeta de crédito vía Airbnb*\n" +
+      "Perfil de Casitas Atlántida en Airbnb:\n" + (link || "(te lo enviamos enseguida)") + "\n\n" +
+      "⚠️ Airbnb cobra una comisión propia de la aplicación, de aproximadamente *19,6% adicional* sobre el precio directo.\n\n" +
+      "Pasos:\n" +
+      "1️⃣ Si todavía no tenés cuenta: descargá la app de Airbnb (App Store o Google Play) o entrá a airbnb.com.\n" +
+      "2️⃣ Tocá *Registrarte* y creá tu usuario con email, teléfono, Google o Apple. Completá tu nombre y fecha de nacimiento, y confirmá tu email o teléfono.\n" +
+      "3️⃣ Abrí el perfil de Casitas Atlántida con el enlace de arriba y elegí *" + (d.casaNombre || "la casa") + "*.\n" +
+      "4️⃣ Seleccioná las fechas " + fmtLargo(d.entrada) + " al " + fmtLargo(d.salida) + " y pagá con tarjeta dentro de Airbnb.\n" +
+      "5️⃣ Mandame por acá una captura de la reserva en Airbnb.";
+  }
+  const CIERRE_PAGO = "\n\nEnviando el *comprobante* (o la captura de la reserva en Airbnb) y la *foto del documento de identidad del huésped principal*, la reserva queda confirmada ✅";
+
+  function detallesReserva(d) {
+    const r = d.r || {};
+    const num = (String(d.casaNombre || "").match(/\d+/) || [String(d.casa)])[0];
+    const total = r.precioTotal ? "USD " + r.precioTotal.usd + " (aprox. $ " + r.precioTotal.uyu + ")" : "a confirmar";
+    return [
+      "¡Gracias por elegir Casitas Atlántida! 🏡", "",
+      "✅ *DETALLES DE LA RESERVA*", "",
+      "🏠 Casa: " + num,
+      "📅 Entrada: " + fmtLargo(d.entrada) + " – desde 14:00 h",
+      "📅 Salida: " + fmtLargo(d.salida) + " – hasta 10:00 h",
+      "💰 Total: " + total, "",
+      "🛏️ Incluye ropa de cama.",
+      "🧴 Traer toallas personales.", "",
+      "🚫 *CONDICIONES IMPORTANTES*", "",
+      "• Alojamiento exclusivo para las personas declaradas.",
+      "• No se permiten fiestas, eventos ni reuniones.",
+      "• Las visitas requieren autorización previa de la administración, aunque no pernocten.", "",
+      "✅ *ACEPTACIÓN:* El huésped declara conocer, aceptar y comprometerse a cumplir estas condiciones durante toda su estadía.", "",
+      "📍 Ubicación: " + (num === "3" ? MAPA_CASA3 : MAPA_OTRAS), "",
+      "📖 Normas de estadía: " + NORMAS,
+    ].join("\n");
+  }
+
   /* ---------- conversación ---------- */
   async function preguntar(to, s) {
     const d = s.d, r = d.r || {};
@@ -182,6 +229,15 @@ module.exports = function mountWhatsApp(app, { readConfig, DATA_DIR, PORT, check
         if (d.carga === "si") L.push(r.enTemporada ? "⚡ Carga eléctrica: gratuita en verano." : "⚡ Carga eléctrica: $300 UYU por carga completa, aparte.");
         L.push("\n¿Querés reservar ahora?");
         return buttons(to, L.join("\n"), [["reservar", "Reservar ahora"], ["duda", "Tengo una duda"], ["ahora_no", "Ahora no"]]);
+      }
+      case "pago": {
+        const se = r.sena;
+        return list(to, "Para confirmar la reserva solicitamos seña del valor de una noche" + (se ? ": *USD " + se.usd + "* (aprox. $ " + se.uyu + ")" : "") + ".\n\n¿Cómo preferís pagarla?", "Elegir forma de pago", [
+          ["pay_airbnb", "Tarjeta (Airbnb)", "Tarjeta de crédito vía Airbnb"],
+          ["pay_brou", "Transferencia BROU", "Cuenta en pesos o dólares"],
+          ["pay_prex", "Prex", "Uruguay, Argentina y exterior"],
+          ["pay_abitab", "Abitab o Redpagos", "Giro por Red de Cobranzas"],
+        ]);
       }
       default:
         return text(to, "Escribí *hola* para empezar. 🙂");
@@ -303,27 +359,46 @@ module.exports = function mountWhatsApp(app, { readConfig, DATA_DIR, PORT, check
       }
       case "precio": {
         if (id === "reservar") {
-          const r = d.r, se = r.sena;
-          let msg = se
-            ? "¡Genial! Para reservar, la seña equivale a una noche de estadía: *USD " + se.usd + "* (aprox. $ " + se.uyu + ").\n\n"
-            : "¡Genial! La seña equivale a una noche de estadía; te confirmamos el monto enseguida.\n\n";
-          try {
-            const pm = await (await fetch("http://127.0.0.1:" + PORT + "/api/medios-de-pago?formato=texto")).text();
-            msg += "💳 Podés pagarla así:\n" + pm + "\n\n";
-          } catch (e) {}
-          msg += "Cuando hagas el pago, mandame el *comprobante* por acá y te confirmamos la reserva. 🙌";
-          await text(from, msg);
-          await avisarDueno("🟢 Quiere RESERVAR (esperando seña)\n" + resumen(s, from));
+          s.step = "pago";
+          await avisarDueno("🟢 Quiere RESERVAR (eligiendo forma de pago)\n" + resumen(s, from));
           addLead({ tipo: "reservar", cliente: from, d });
-          s.step = "comprobante";
+          await preguntar(from, s);
         } else if (id === "duda") { await derivar(from, s); }
         else if (id === "ahora_no") { await text(from, "¡Sin problema! Cuando quieras retomar, escribí *hola*. Gracias por consultar. 🌴"); s.step = "inicio"; s.d = {}; }
         else await preguntar(from, s);
         break;
       }
+      case "pago":
       case "comprobante": {
-        await text(from, "¡Gracias! Recibimos tu mensaje. Una persona del equipo confirma la reserva en cuanto vea la seña. 🙏");
-        await avisarDueno("💵 Llegó un mensaje de " + "https://wa.me/" + from + " tras pedir la reserva (" + (input.media ? "adjuntó un archivo/imagen, probablemente el comprobante" : "texto: " + cut(txt, 200)) + ")\nRevisalo en la app.");
+        if (id.startsWith("pay_")) {
+          d.pago = id; d.docs = 0; s.step = "comprobante";
+          await text(from, textoPago(id, d) + CIERRE_PAGO);
+          await avisarDueno("💳 Eligió pagar con: " + ({ pay_airbnb: "Airbnb", pay_brou: "Transferencia BROU", pay_prex: "Prex", pay_abitab: "Abitab/Redpagos" }[id]) + "\nhttps://wa.me/" + from);
+          break;
+        }
+        if (s.step === "pago") { await preguntar(from, s); break; }
+        if (!input.media) { await text(from, "Cuando los tengas, mandame por acá el *comprobante* y la *foto del documento de identidad del huésped principal*. 🙌"); break; }
+        d.docs = (d.docs || 0) + 1;
+        if (d.docs < 2) {
+          await text(from, "Recibí 1 archivo ✅ Para confirmar necesito *los dos*: el comprobante de pago (o captura de Airbnb) y la foto del documento de identidad del huésped principal. Me falta 1 más.");
+          await avisarDueno("📎 Llegó el primer archivo de https://wa.me/" + from + ". Falta el segundo (comprobante o documento).");
+          break;
+        }
+        // Ya recibimos comprobante + documento
+        let libre = true;
+        try {
+          const r2 = await disp(d.entrada, d.salida, d.personas);
+          const c2 = (r2.casas || []).find(x => x.id === d.casa);
+          libre = !!(c2 && c2.libre);
+        } catch (e) {}
+        if (!libre || process.env.WA_CONFIRMAR_AUTO === "no") {
+          await text(from, "¡Gracias! Recibimos todo ✅ Estamos verificando y te confirmamos la reserva en breve. 🙏");
+          await avisarDueno((libre ? "✅ Llegaron comprobante y documento (confirmación manual)" : "⚠️ REVISAR: llegaron comprobante y documento pero la casa figura ocupada en esas fechas") + "\n" + resumen(s, from));
+        } else {
+          await text(from, detallesReserva(d));
+          await avisarDueno("✅ RESERVA CONFIRMADA automáticamente (comprobante + documento recibidos). Verificá el pago.\n" + resumen(s, from));
+        }
+        addLead({ tipo: "documentacion", cliente: from, d });
         s.step = "humano"; break;
       }
       default:
