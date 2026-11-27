@@ -252,9 +252,10 @@ module.exports = function mountWhatsApp(app, { readConfig, DATA_DIR, PORT, check
           if (id === "consultar" || INTENCION.test(low)) {
             await text(from, "¡Hola! Soy el asistente de *Casitas Atlántida* 🏖️ Te ayudo a encontrar casa y reservar.");
             s.step = "fechas"; await preguntar(from, s);
-          } else {
+          } else if (process.env.WA_SALUDO !== "no") {
             await buttons(from, "¡Hola! Soy el asistente de *Casitas Atlántida* 🏖️ ¿Querés consultar disponibilidad?", [["consultar", "Consultar fechas"], ["humano", "Hablar con alguien"]]);
           }
+          // con WA_SALUDO=no, un mensaje sin intención de reserva no recibe respuesta automática (lo atendés vos)
         } else {
           await text(from, "No pude entender las fechas. Probá así: *3 al 12 de diciembre* o *03/12 al 12/12*.");
         }
